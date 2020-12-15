@@ -50,6 +50,7 @@ down_nmme <- function(ano = 1981, modelo = "CanCM4i", variavel = "prec"){
   data_link_ano <- str_replace_all(data_link_ano, "YYYY", ano)
   
   #path_file(data_link_ano)
+  message("Baixando arquivo: ", dest_file)
   
   download.file(data_link_ano, destfile = dest_file, mode = "wb")
   
