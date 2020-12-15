@@ -68,36 +68,26 @@ baixados_prec_CanCM4i <- lapply(start_y : end_y,
                                 function(iano) down_nmme(ano = iano)
                                 )
 
+## aperfeicoamentos futuros
+#anos <- 1981:2018
+#modelos <- c("CanCM4i", "CanSIPSv2", "CMC1-CanCM3")
+#variaveis <- c("prec", "temp")
 
-anos <- 1981:2018
-modelos <- c("CanCM4i", "CanSIPSv2", "CMC1-CanCM3")
-variaveis <- c("prec", "temp")
-
-tabela_control <- expand.grid(variaveis, modelos, anos) %>%
-  as.data.frame() %>%
-  setNames(c("var", "modelo", "ano")) %>%
-  as_tibble() %>%
-  mutate_all(.funs = as.character) %>%
-  arrange(modelo, var)
+#tabela_control <- expand.grid(variaveis, modelos, anos) %>%
+#  as.data.frame() %>%
+#  setNames(c("var", "modelo", "ano")) %>%
+#  as_tibble() %>%
+#  mutate_all(.funs = as.character) %>%
+#  arrange(modelo, var)
 
 # montar tabela de ano inicial e final de cada modelo
 # ver nomes das variaveis
 
-  
-
-
-
-
-
-
 # verificacao
-files_nc <- dir_ls("../output", glob = "*.nc")
-
-range(rast(files_nc[1])[])
-range(rast(files_nc[2])[])
-
-tidync::hyper_tibble(files_nc[1])
-tidync::hyper_tibble(files_nc[2])
-
-summary(tidync::hyper_tibble(files_nc[2]))
+#files_nc <- dir_ls("../output", glob = "*.nc")
+#range(rast(files_nc[1])[])
+#range(rast(files_nc[2])[])
+#tidync::hyper_tibble(files_nc[1])
+#tidync::hyper_tibble(files_nc[2])
+#summary(tidync::hyper_tibble(files_nc[2]))
 
