@@ -1,6 +1,6 @@
 
 # teste de download NMME
-pcks <- c("terra", "tidync", "tidyverse", "fs")
+pcks <- c("terra", "tidync", "tidyverse", "fs", "data.table")
 easypackages::libraries(pcks)
 
 
@@ -70,8 +70,15 @@ baixados_prec_CanCM4i <- lapply(start_y : end_y,
 
 ## aperfeicoamentos futuros
 #anos <- 1981:2018
-#modelos <- c("CanCM4i", "CanSIPSv2", "CMC1-CanCM3")
-#variaveis <- c("prec", "temp")
+#modelos <- c("CanCM4i",
+#              "CanSIPSv2",
+#              "CMC1-CanCM3",
+#              "CMC2-CanCM4",
+#              "GEM-NEMO",
+#              "NASA-GEOSS2S",
+#              "NCAR-CESM1",
+#              "NCEP-CFSv2")
+#variaveis <- c("prec", "sst")
 
 #tabela_control <- expand.grid(variaveis, modelos, anos) %>%
 #  as.data.frame() %>%
@@ -81,7 +88,20 @@ baixados_prec_CanCM4i <- lapply(start_y : end_y,
 #  arrange(modelo, var)
 
 # montar tabela de ano inicial e final de cada modelo
+models <- data.table(modelos = c("CanCM4i", "CanSIPSv2", "CMC1-CanCM3",
+                                 "CMC2-CanCM4", "GEM-NEMO", "NASA-GEOSS2S",
+                                 "NCAR-CESM1", "NCEP-CFSv2"),  
+                     ano_i = c("1981", "1981", "1981",  
+                               "1981", "1981", "1981",   
+                               "1980", "1982"),  
+                     ano_f = c("2019", "2019", "2011",
+                               "2011", "2019", "2017", 
+                               "2011", "2011")) 
+
 # ver nomes das variaveis
+# Total Precipitation (mm/day): prec 
+# Sea Surface Temperature (K): sst
+
 
 # verificacao
 #files_nc <- dir_ls("../output", glob = "*.nc")
