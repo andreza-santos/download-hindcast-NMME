@@ -74,6 +74,7 @@ baixados_prec <- lapply(start_y : end_y,
 )
 toc()
 
+<<<<<<< HEAD
 ## aperfeicoamentos futuros
 #anos <- 1981:2018
 #modelos <- c("CanCM4i",
@@ -128,4 +129,6 @@ models <- data.table(modelos = c("CanCM4i", "CanSIPSv2", "CMC1-CanCM3",
 #tidync::hyper_tibble(files_nc[1])
 #tidync::hyper_tibble(files_nc[2])
 #summary(tidync::hyper_tibble(files_nc[2]))
+=======
+>>>>>>> 5dd3d4d869d6dac7803fd4cf82746971277cd502
 
