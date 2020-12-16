@@ -1,6 +1,6 @@
 
 # teste de download NMME
-pcks <- c("terra", "tidync", "tidyverse", "fs", "data.table")
+pcks <- c("terra", "tidync", "tidyverse", "fs", "tictoc", "data.table")
 easypackages::libraries(pcks)
 
 
@@ -18,7 +18,7 @@ easypackages::libraries(pcks)
 #' @export
 #'
 #' @examples
-down_nmme <- function(ano = 1981, modelo = "CanCM4i", variavel = "prec"){
+down_nmme <- function(ano = 1981, modelo = "CanSIPSv2", variavel = "prec"){
   # ano <- as.character(1981);  modelo <- "CanCM4i";variavel <- "prec"
   
   ano <- as.character(ano)
@@ -39,7 +39,7 @@ down_nmme <- function(ano = 1981, modelo = "CanCM4i", variavel = "prec"){
   )
   
   prefix <- paste0("nmme_", variavel, "_", modelo, "_", ano) 
-  dest_file <- path("../output", 
+  dest_file <- path("/home/andreza/Desktop/test-down-NMME/output", 
                     str_replace(path_file(data_link), "data", prefix)
   )
   
@@ -61,12 +61,18 @@ down_nmme <- function(ano = 1981, modelo = "CanCM4i", variavel = "prec"){
   return(paste0("Nao foi possivel baixar o arquivo: ", dest_file))  
 }
 
-start_y <- 1983
-end_y <- 2018 
+tic()
 
-baixados_prec_CanCM4i <- lapply(start_y : end_y, 
+start_y <- 1981
+end_y <- 2018
+
+# baixados_prec_CanCM4i <- lapply(start_y : end_y, 
+#                                 function(iano) down_nmme(ano = iano)
+#                                 )
+baixados_prec <- lapply(start_y : end_y, 
                                 function(iano) down_nmme(ano = iano)
-                                )
+)
+toc()
 
 ## aperfeicoamentos futuros
 #anos <- 1981:2018
