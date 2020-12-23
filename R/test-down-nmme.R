@@ -18,11 +18,10 @@ easypackages::libraries(pcks)
 #' @export
 #'
 #' @examples
-down_nmme <- function(ano = 1981, modelo = "CanSIPSv2", variavel = "prec"){
+down_nmme <- function(ano = 1981, modelo = "CanCM4i", variavel = "tmax"){
   # ano <- as.character(1981);  modelo <- "CanCM4i";variavel <- "prec"
   
   ano <- as.character(ano)
-  
   
   data_link <- paste0(
     "http://iridl.ldeo.columbia.edu/SOURCES/.Models/.NMME/",
@@ -66,11 +65,23 @@ tic()
 start_y <- 1981
 end_y <- 2018
 
-# baixados_prec_CanCM4i <- lapply(start_y : end_y, 
+modelos <- c("CanCM4i",
+             "CanSIPSv2",
+             "CMC1-CanCM3",
+             "CMC2-CanCM4",
+             "GEM-NEMO",
+             "NASA-GEOSS2S",
+             "NCAR-CESM1",
+             "NCEP-CFSv2")
+
+# variaveis <- c("prec", "tmax", "tmin", "t2mmax",
+#                "t2mmin", "tsmn", "tsmx", "tref")
+
+# baixados_prec_CanCM4i <- lapply(start_y : end_y,
 #                                 function(iano) down_nmme(ano = iano)
 #                                 )
 baixados_prec <- lapply(start_y : end_y, 
-                                function(iano) down_nmme(ano = iano)
+                        function(iano) down_nmme(ano = iano, modelo = modelos)
 )
-toc()
 
+toc()
