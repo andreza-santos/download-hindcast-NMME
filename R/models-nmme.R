@@ -50,7 +50,7 @@ models <- data.table(modelo = c("CanCM4i", "CanSIPSv2", "CMC1-CanCM3",
                      # fase_i = c(""),
                      # fase_ii = c(""),
                      # variaveis = c("Precipitation (mm/day), Maximum Temperature (K), Minimum Temperature (K)", "", "", "", "","Precipitation (mm/day), Maximum Temperature (K), Minimum Temperature (K)", "Precipitation (mm/day), Daily minimum of average 2-m temperature (K), Daily maximum of average 2-m temperature (K)", "Precipitation (mm/day), Reference Temperature (K)"),
-                     # var_abrev = c("prec, tmax, tmin", "", "", "", "", "prec, t2mmax, t2mmin", "prec, tsmn, tsmx", "prec, tref")
+                     # var_abrev = c("prec, tmax, tmin", "", "", "", "", "prec, t2mmax, t2mmin", "prec, tsmx, tsmn", "prec, tref")
 )
 models
 

@@ -18,7 +18,7 @@ easypackages::libraries(pcks)
 #' @export
 #'
 #' @examples
-down_nmme <- function(ano = 1981, modelo = "CanCM4i", variavel = "tmax"){
+down_nmme <- function(ano = 1981, modelo = "CanCM4i", variavel = "prec"){
   # ano <- as.character(1981);  modelo <- "CanCM4i";variavel <- "prec"
   
   ano <- as.character(ano)
@@ -65,23 +65,26 @@ tic()
 start_y <- 1981
 end_y <- 2018
 
-modelos <- c("CanCM4i",
-             "CanSIPSv2",
-             "CMC1-CanCM3",
-             "CMC2-CanCM4",
-             "GEM-NEMO",
-             "NASA-GEOSS2S",
-             "NCAR-CESM1",
-             "NCEP-CFSv2")
+# modelos <- c("CanCM4i",
+             # "CanSIPSv2",
+             # "CMC1-CanCM3",
+             # "CMC2-CanCM4",
+             # "GEM-NEMO",
+             # "NASA-GEOSS2S",
+             # "NCAR-CESM1",
+             # "NCEP-CFSv2")
 
 # variaveis <- c("prec", "tmax", "tmin", "t2mmax",
 #                "t2mmin", "tsmn", "tsmx", "tref")
 
-# baixados_prec_CanCM4i <- lapply(start_y : end_y,
-#                                 function(iano) down_nmme(ano = iano)
-#                                 )
-baixados_prec <- lapply(start_y : end_y, 
-                        function(iano) down_nmme(ano = iano, modelo = modelos)
-)
+baixados_prec_CanCM4i <- lapply(start_y : end_y,
+                                function(iano) down_nmme(ano = iano)
+                                )
+# baixados_prec <- lapply(start_y : end_y,
+#                         function(iano) down_nmme(ano = iano, modelo = modelos)
+# )
+# baixados_prec <- lapply(start_y : end_y,
+#                         function(iano) down_nmme(ano = iano, variavel = variaveis)
+# )
 
 toc()
