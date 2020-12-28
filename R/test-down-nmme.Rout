@@ -144,10 +144,16 @@ All packages loaded successfully
 +                                 )
 Baixando arquivo: /home/andreza/Desktop/test-down-NMME/output/nmme_tmax_CanSIPSv2_1981.nc
 trying URL 'http://iridl.ldeo.columbia.edu/SOURCES/.Models/.NMME/.CanSIPSv2/.HINDCAST/.MONTHLY/.tmax/S/%280000%201%20Jan%201981%29%280000%2030%20Dec%201981%29RANGEEDGES/X/%2830W%29%2885W%29RANGEEDGES/Y/%2860S%29%2815N%29RANGEEDGES/data.nc'
+Content type 'application/x-netcdf' length 49031188 bytes (46.8 MB)
+==================================================
+downloaded 46.8 MB
+
+Baixando arquivo: /home/andreza/Desktop/test-down-NMME/output/nmme_tmax_CanSIPSv2_1982.nc
+trying URL 'http://iridl.ldeo.columbia.edu/SOURCES/.Models/.NMME/.CanSIPSv2/.HINDCAST/.MONTHLY/.tmax/S/%280000%201%20Jan%201982%29%280000%2030%20Dec%201982%29RANGEEDGES/X/%2830W%29%2885W%29RANGEEDGES/Y/%2860S%29%2815N%29RANGEEDGES/data.nc'
 Error in download.file(data_link_ano, destfile = dest_file, mode = "wb") : 
-  cannot open URL 'http://iridl.ldeo.columbia.edu/SOURCES/.Models/.NMME/.CanSIPSv2/.HINDCAST/.MONTHLY/.tmax/S/%280000%201%20Jan%201981%29%280000%2030%20Dec%201981%29RANGEEDGES/X/%2830W%29%2885W%29RANGEEDGES/Y/%2860S%29%2815N%29RANGEEDGES/data.nc'
+  cannot open URL 'http://iridl.ldeo.columbia.edu/SOURCES/.Models/.NMME/.CanSIPSv2/.HINDCAST/.MONTHLY/.tmax/S/%280000%201%20Jan%201982%29%280000%2030%20Dec%201982%29RANGEEDGES/X/%2830W%29%2885W%29RANGEEDGES/Y/%2860S%29%2815N%29RANGEEDGES/data.nc'
 Calls: lapply -> FUN -> down_nmme -> download.file
 In addition: Warning message:
 In download.file(data_link_ano, destfile = dest_file, mode = "wb") :
-  URL 'http://iridl.ldeo.columbia.edu/SOURCES/.Models/.NMME/.CanSIPSv2/.HINDCAST/.MONTHLY/.tmax/S/%280000%201%20Jan%201981%29%280000%2030%20Dec%201981%29RANGEEDGES/X/%2830W%29%2885W%29RANGEEDGES/Y/%2860S%29%2815N%29RANGEEDGES/data.nc': Timeout of 60 seconds was reached
+  URL 'http://iridl.ldeo.columbia.edu/SOURCES/.Models/.NMME/.CanSIPSv2/.HINDCAST/.MONTHLY/.tmax/S/%280000%201%20Jan%201982%29%280000%2030%20Dec%201982%29RANGEEDGES/X/%2830W%29%2885W%29RANGEEDGES/Y/%2860S%29%2815N%29RANGEEDGES/data.nc': Timeout of 60 seconds was reached
 Execution halted

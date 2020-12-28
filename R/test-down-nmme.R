@@ -2,13 +2,13 @@
 # teste de download NMME
 pcks <- c("terra", "tidync", "tidyverse", "fs", "tictoc", "data.table")
 easypackages::libraries(pcks)
-
+options(timeout=150)
 
 
 #' Baixa o arquivo anual da previsao retrospectiva do NMME para a AS
 #' Download da previsao retrospectiva do Sistema NMME recortado para 
 #' a America do Sul, incluindo os 12 tempos de antecedencia e os 10
-#' tempos de inicio da precisao.  
+#' tempos de inicio da previsao.  
 #'
 #' @param ano 
 #' @param modelo 
@@ -62,29 +62,23 @@ down_nmme <- function(ano = 1981, modelo = "CanCM4i", variavel = "prec"){
 
 tic()
 
-start_y <- 1981
+source("/home/andreza/Desktop/test-down-NMME/download-hindcast-NMME/R/models-nmme.R")
+
+start_y <- 1980
 end_y <- 2018
+modelos = tabela1$modelo
 
-# modelos <- c("CanCM4i",
-             # "CanSIPSv2",
-             # "CMC1-CanCM3",
-             # "CMC2-CanCM4",
-             # "GEM-NEMO",
-             # "NASA-GEOSS2S",
-             # "NCAR-CESM1",
-             # "NCEP-CFSv2")
-
-# variaveis <- c("prec", "tmax", "tmin", "t2mmax",
-#                "t2mmin", "tsmn", "tsmx", "tref")
-
-baixados_prec_CanCM4i <- lapply(start_y : end_y,
-                                function(iano) down_nmme(ano = iano)
-                                )
-# baixados_prec <- lapply(start_y : end_y,
-#                         function(iano) down_nmme(ano = iano, modelo = modelos)
-# )
-# baixados_prec <- lapply(start_y : end_y,
-#                         function(iano) down_nmme(ano = iano, variavel = variaveis)
+# baixados_prec_CanCM4i <- lapply(start_y : end_y,
+#                                 function(iano) down_nmme(ano = iano)
+#                                 )
+baixados_prec <- lapply(start_y : end_y,
+                        function(iano) down_nmme(modelo = modelos, ano = iano)
+)
+baixados_temp <- lapply(start_y : end_y,
+                        function(iano) down_nmme(modelo = modelos, variavel = temp, ano = iano)
+)
+# baixados_dados <- lapply(start_y : end_y,
+#                         function(iano) down_nmme(modelo = modelos, variavel = variaveis, ano = iano)
 # )
 
 toc()

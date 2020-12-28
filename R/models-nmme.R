@@ -1,14 +1,14 @@
 ## aperfeicoamentos futuros
-#anos <- 1981:2018
-#modelos <- c("CanCM4i",
-#              "CanSIPSv2",
-#              "CMC1-CanCM3",
-#              "CMC2-CanCM4",
-#              "GEM-NEMO",
-#              "NASA-GEOSS2S",
-#              "NCAR-CESM1",
-#              "NCEP-CFSv2")
-#variaveis <- c("prec", "tmax", "tmin", "t2mmax", "t2mmin", "tsmn", "tsmx", "tref")
+library(data.table)
+
+# anos <- 1980:2018
+# variaveis <- c("prec", "tmax", "tmin", "t2mmax", "t2mmin", "tsmx", "tsmn", "tref")
+
+# variaveis <- c("prec", "prec", "prec", "prec", "prec", "prec", "prec", "prec",
+#                "tmax", "tmax", "tmax", "tmax", "tmax", "t2mmax", "tsmx", "tref",
+#                "tmin", "tmin", "tmin", "tmin", "tmin", "t2mmin", "tsmn")
+temp <- c("tmax", "tmax", "tmax", "tmax", "tmax", "t2mmax", "tsmx", "tref",
+               "tmin", "tmin", "tmin", "tmin", "tmin", "t2mmin", "tsmn")
 
 #tabela_control <- expand.grid(variaveis, modelos, anos) %>%
 #  as.data.frame() %>%
@@ -17,19 +17,18 @@
 #  mutate_all(.funs = as.character) %>%
 #  arrange(modelo, var)
 
-# montar tabela de ano inicial e final de cada modelo
-library(data.table)
-models <- data.table(modelo = c("CanCM4i", "CanSIPSv2", "CMC1-CanCM3",
+## montar tabela de ano inicial e final de cada modelo
+tabela1 <- data.table(modelo = c("CanCM4i", "CanSIPSv2", "CMC1-CanCM3",
                                 "CMC2-CanCM4", "GEM-NEMO", "NASA-GEOSS2S",
                                 "NCAR-CESM1", "NCEP-CFSv2"),
-                     # centro = c("Canadian Meteorological Centre (CMC) – Canada",
-                     #            "Canadian Meteorological Centre (CMC) – Canada",
-                     #            "Canadian Meteorological Centre (CMC) – Canada",
-                     #            "Canadian Meteorological Centre (CMC) – Canada",
-                     #            "Recherche en Prévision Numérique (RPN)",
-                     #            "National Aeronautics and Space Administration (NASA) – United States",
-                     #            "National Center for Atmospheric Research (NCAR)",
-                     #            "National Centers for Environmental Prediction (NOAA/NCEP) – United States"),
+                     centro = c("Canadian Meteorological Centre (CMC) – Canada",
+                                "Canadian Meteorological Centre (CMC) – Canada",
+                                "Canadian Meteorological Centre (CMC) – Canada",
+                                "Canadian Meteorological Centre (CMC) – Canada",
+                                "Recherche en Prévision Numérique (RPN)",
+                                "National Aeronautics and Space Administration (NASA) – United States",
+                                "National Center for Atmospheric Research (NCAR)",
+                                "National Centers for Environmental Prediction (NOAA/NCEP) – United States"),
                      periodo = c("1981-2018", "1981-2018", "1981-2010",  
                                  "1981-2010", "1981-2018", "1981-2017",   
                                  "1980-2010", "1982-2010"),
@@ -47,12 +46,22 @@ models <- data.table(modelo = c("CanCM4i", "CanSIPSv2", "CMC1-CanCM3",
                                     "Vernieres et al. (2012)",
                                     "Lawrence et al. (2012)",
                                     "Saha et al. (2014)")
-                     # fase_i = c(""),
-                     # fase_ii = c(""),
-                     # variaveis = c("Precipitation (mm/day), Maximum Temperature (K), Minimum Temperature (K)", "", "", "", "","Precipitation (mm/day), Maximum Temperature (K), Minimum Temperature (K)", "Precipitation (mm/day), Daily minimum of average 2-m temperature (K), Daily maximum of average 2-m temperature (K)", "Precipitation (mm/day), Reference Temperature (K)"),
-                     # var_abrev = c("prec, tmax, tmin", "", "", "", "", "prec, t2mmax, t2mmin", "prec, tsmx, tsmn", "prec, tref")
+                     # variaveis = c("Precipitation (prec; mm/day), Maximum Temperature (tmax; K), Minimum Temperature (tmin; K)",
+                     #               "",
+                     #               "",
+                     #               "",
+                     #               "",
+                     #               "Precipitation (prec; mm/day), Maximum Temperature (t2mmax; K), Minimum Temperature (t2mmin; K)",
+                     #               "Precipitation (prec; mm/day), Daily minimum of average 2-m temperature (tsmx; K), Daily maximum of average 2-m temperature (tsmn; K)",
+                     #               "Precipitation (prec; mm/day), Reference Temperature (tref; K)"
+                     # )
+
 )
-models
+tabela1
+
+# write.table(tabela1, file = "/home/andreza/Desktop/test-down-NMME/output/tabela1.csv",
+#             row.names = FALSE, sep = ";"
+#             )
 
 # verificacao
 #files_nc <- dir_ls("../output", glob = "*.nc")
