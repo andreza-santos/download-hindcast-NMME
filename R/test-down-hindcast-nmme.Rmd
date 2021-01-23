@@ -1,0 +1,446 @@
+---
+title: "Teste para download da previsao retrospectiva do NMME"
+author: Andreza Santos
+date: "12/29/2020"
+output: html_document
+---
+
+## Em contrução
+
+Scripts para baixar arquivos anuais da previsão retrospectiva de diferentes modelos do Sistema NMME (North-America Multi Model Ensemble) para a America do Sul (AS).
+Os arquivos são previsões restrospectivas de precipitação, temperatura máxima e temperatura mínima do repositório de dados on-line IRI/LDEO Climate Data Library (http://iridl.ldeo.columbia.edu/). Neste script, os dados estão recortados para a AS, incluindo os 12 tempos de antecedencia e os 10 tempos de inicio da previsao.
+
+```{r setup, include=FALSE}
+pcks <- c("terra", "tidync", "tidyverse", "fs", "tictoc", "data.table")
+easypackages::libraries(pcks)
+options(timeout=150)
+```
+
+
+Download previsão retrospectiva em grade da precipitação de todos os modelos de previsão retrospectiva do NMME (CanCM4i, CanSIPSv2, CMC1-CanCM3, CMC2-CanCM4, GEM-NEMO, NASA-GEOSS2S, NCAR-CESM1 e NCEP-CFSv2).
+```{r}
+tabela1 <- data.table(modelo = c("CanCM4i", "CanSIPSv2", "CMC1-CanCM3",
+                                "CMC2-CanCM4", "GEM-NEMO", "NASA-GEOSS2S",
+                                "NCAR-CESM1", "NCEP-CFSv2"),
+                     centro = c("Canadian Meteorological Centre (CMC) – Canada",
+                                "Canadian Meteorological Centre (CMC) – Canada",
+                                "Canadian Meteorological Centre (CMC) – Canada",
+                                "Canadian Meteorological Centre (CMC) – Canada",
+                                "Recherche en Prévision Numérique (RPN)",
+                                "National Aeronautics and Space Administration (NASA) – United States",
+                                "National Center for Atmospheric Research (NCAR)",
+                                "National Centers for Environmental Prediction (NOAA/NCEP) – United States"),
+                     periodo_inicial = c(1981, 1981, 1981,  
+                                 1981, 1981, 1981,   
+                                 1980, 1982),
+                     periodo_final = c(2018, 2018, 2010,  
+                                 2010, 2018, 2017,   
+                                 2010, 2010),
+                     n_membros = c(10, 20, 10,
+                                   10, 10, 4,
+                                   10, 24),
+                     lead = c("0.5-11.5", "0.5-11.5", "0.5-11.5",
+                              "0.5-11.5", "0.5-11.5", "0.5-8.5",
+                              "0.5-11.5", "0.5-9.5"),
+                     referencia = c("Kirtman et al. (2014)",
+                                    "Kirtman et al. (2014)",
+                                    "Merryfield et al. (2013)",
+                                    "Merryfield et al. (2013)",
+                                    "Kirtman et al. (2014)",
+                                    "Vernieres et al. (2012)",
+                                    "Lawrence et al. (2012)",
+                                    "Saha et al. (2014)"),
+                     variaveis = c(rep("Precipitation (mm/day)", 8)),
+                     var_abrev = "prec" # c(rep("prec", 8))
+)
+
+# Baixa o arquivo anual da previsao retrospectiva para dos modelos da tabela1
+
+down_nmme <- function(ano = "x", modelo = "y", variavel = tabela1$var_abrev){
+  
+  ano <- as.character(ano)
+  
+  data_link <- paste0(
+    "http://iridl.ldeo.columbia.edu/SOURCES/.Models/.NMME/",
+    # modelo
+    ".modelo/.HINDCAST/.MONTHLY/",
+    # variavel
+    ".variavel/",
+    # Forecast Start Time (forecast_reference_time)
+    "S/%280000%201%20Jan%20YYYY%29%280000%2030%20Dec%20YYYY",
+    # sub dominio
+    "%29RANGEEDGES/X/%2830W%29%2885W%29RANGEEDGES/Y/%2860S%29%2815N%29RANGEEDGES/",
+    # nome dop arq default
+    "data.nc"
+  )
+  
+  prefix <- paste0("nmme_", variavel, "_", modelo, "_", ano) 
+  dest_file <- path("/home/andreza/github/download-hindcast-NMME/output", 
+                    str_replace(path_file(data_link), "data", prefix)
+  )
+  
+  Sys.sleep(1)
+  
+  data_link_ano <- str_replace_all(data_link, "variavel", variavel)
+  data_link_ano <- str_replace_all(data_link_ano, "modelo", modelo)
+  data_link_ano <- str_replace_all(data_link_ano, "YYYY", ano)
+  
+  #path_file(data_link_ano)
+  message("Baixando arquivo: ", dest_file)
+  
+  download.file(data_link_ano, destfile = dest_file, mode = "wb")
+  
+  if(file.exists(dest_file)){
+    return(dest_file)
+  }
+  
+  return(paste0("Nao foi possivel baixar o arquivo: ", dest_file))  
+}
+
+tic()
+
+start_y <- periodo_inicial
+end_y <- periodo_inicial
+modelos <- tabela1$modelo
+
+baixados_prec <- lapply(start_y : end_y,
+                        function(iano) down_nmme(modelo = modelos, ano = iano)
+)
+toc()
+```
+
+
+Download previsão retrospectiva em grade da temperatura máxima e mínima para os modelos CanCM4i, CanSIPSv2 e GEM-NEMO.
+```{r}
+tabela2 <- data.table(modelo = c("CanCM4i",
+                                 "CanSIPSv2",
+                                 "GEM-NEMO"),
+                      periodo = c(1981, 2018),
+                      variaveis = c("Maximum Temperature (K)",
+                                    "Minimum Temperature (K)"),
+                      var_abrev = c("tmax", "tmin")
+                      )
+
+# Baixa o arquivo anual da previsao retrospectiva dos modelos da tabela2
+
+down_nmme <- function(ano = "x", modelo = "y", variavel = "z"){
+  
+  ano <- as.character(ano)
+  
+  data_link <- paste0(
+    "http://iridl.ldeo.columbia.edu/SOURCES/.Models/.NMME/",
+    # modelo
+    ".modelo/.HINDCAST/.MONTHLY/",
+    # variavel
+    ".variavel/",
+    # Forecast Start Time (forecast_reference_time)
+    "S/%280000%201%20Jan%20YYYY%29%280000%2030%20Dec%20YYYY",
+    # sub dominio
+    "%29RANGEEDGES/X/%2830W%29%2885W%29RANGEEDGES/Y/%2860S%29%2815N%29RANGEEDGES/",
+    # nome dop arq default
+    "data.nc"
+  )
+  
+  prefix <- paste0("nmme_", variavel, "_", modelo, "_", ano) 
+  dest_file <- path("/home/andreza/github/download-hindcast-NMME/output", 
+                    str_replace(path_file(data_link), "data", prefix)
+  )
+  
+  Sys.sleep(1)
+  
+  data_link_ano <- str_replace_all(data_link, "variavel", variavel)
+  data_link_ano <- str_replace_all(data_link_ano, "modelo", modelo)
+  data_link_ano <- str_replace_all(data_link_ano, "YYYY", ano)
+  
+  #path_file(data_link_ano)
+  message("Baixando arquivo: ", dest_file)
+  
+  download.file(data_link_ano, destfile = dest_file, mode = "wb")
+  
+  if(file.exists(dest_file)){
+    return(dest_file)
+  }
+  
+  return(paste0("Nao foi possivel baixar o arquivo: ", dest_file))  
+}
+
+tic()
+
+start_y <- tabela2$periodo[1]
+end_y <- tabela2$periodo[2]
+modelos <- tabela2$modelo
+variaveis <- tabela2$var_abrev
+
+baixados_temp <- lapply(start_y : end_y,
+                        function(iano) down_nmme(modelo = modelos, ano = iano)
+)
+
+toc()
+```
+
+Download previsão retrospectiva em grade das temperaturas máxima e mínima para os modelos CMC1-CanCM3 e CMC2-CanCM4.
+```{r}
+tabela3 <- data.table(modelo = c("CMC1-CanCM3",
+                                 "CMC2-CanCM4"),
+                      periodo = c(1981, 2010),
+                      variaveis = c("Maximum Temperature (K)",
+                                    "Minimum Temperature (K)"),
+                      var_abrev = c("tmax", "tmin")
+                      )
+
+# Baixa o arquivo anual da previsao retrospectiva dos modelos da tabela3
+
+down_nmme <- function(ano = "x", modelo = "y", variavel = "z"){
+  
+  ano <- as.character(ano)
+  
+  data_link <- paste0(
+    "http://iridl.ldeo.columbia.edu/SOURCES/.Models/.NMME/",
+    # modelo
+    ".modelo/.HINDCAST/.MONTHLY/",
+    # variavel
+    ".variavel/",
+    # Forecast Start Time (forecast_reference_time)
+    "S/%280000%201%20Jan%20YYYY%29%280000%2030%20Dec%20YYYY",
+    # sub dominio
+    "%29RANGEEDGES/X/%2830W%29%2885W%29RANGEEDGES/Y/%2860S%29%2815N%29RANGEEDGES/",
+    # nome dop arq default
+    "data.nc"
+  )
+  
+  prefix <- paste0("nmme_", variavel, "_", modelo, "_", ano) 
+  dest_file <- path("/home/andreza/github/download-hindcast-NMME/output", 
+                    str_replace(path_file(data_link), "data", prefix)
+  )
+  
+  Sys.sleep(1)
+  
+  data_link_ano <- str_replace_all(data_link, "variavel", variavel)
+  data_link_ano <- str_replace_all(data_link_ano, "modelo", modelo)
+  data_link_ano <- str_replace_all(data_link_ano, "YYYY", ano)
+  
+  #path_file(data_link_ano)
+  message("Baixando arquivo: ", dest_file)
+  
+  download.file(data_link_ano, destfile = dest_file, mode = "wb")
+  
+  if(file.exists(dest_file)){
+    return(dest_file)
+  }
+  
+  return(paste0("Nao foi possivel baixar o arquivo: ", dest_file))  
+}
+
+tic()
+
+start_y <- tabela3$periodo[1]
+end_y <- tabela3$periodo[2]
+modelos <- tabela3$modelo
+variaveis <- tabela3$var_abrev
+
+baixados_temp <- lapply(start_y : end_y,
+                        function(iano) down_nmme(modelo = modelos, ano = iano)
+)
+
+toc()
+```
+
+
+Download previsão retrospectiva em grade das temperaturas máxima e mínima para o modelo NASA-GEOSS2S.
+```{r}
+tabela4 <- data.table(modelo = "NASA-GEOSS2S",
+                      periodo = c(1981, 2017),
+                      variaveis = c("Maximum Temperature (K)",
+                                    "Minimum Temperature (K)"),
+                      var_abrev = c("t2mmax", "t2mmin")
+                      )
+
+# Baixa o arquivo anual da previsao retrospectiva do modelo da tabela4
+
+down_nmme <- function(ano = "x", modelo = "y", variavel = "z"){
+  
+  ano <- as.character(ano)
+  
+  data_link <- paste0(
+    "http://iridl.ldeo.columbia.edu/SOURCES/.Models/.NMME/",
+    # modelo
+    ".modelo/.HINDCAST/.MONTHLY/",
+    # variavel
+    ".variavel/",
+    # Forecast Start Time (forecast_reference_time)
+    "S/%280000%201%20Jan%20YYYY%29%280000%2030%20Dec%20YYYY",
+    # sub dominio
+    "%29RANGEEDGES/X/%2830W%29%2885W%29RANGEEDGES/Y/%2860S%29%2815N%29RANGEEDGES/",
+    # nome dop arq default
+    "data.nc"
+  )
+  
+  prefix <- paste0("nmme_", variavel, "_", modelo, "_", ano) 
+  dest_file <- path("/home/andreza/github/download-hindcast-NMME/output", 
+                    str_replace(path_file(data_link), "data", prefix)
+  )
+  
+  Sys.sleep(1)
+  
+  data_link_ano <- str_replace_all(data_link, "variavel", variavel)
+  data_link_ano <- str_replace_all(data_link_ano, "modelo", modelo)
+  data_link_ano <- str_replace_all(data_link_ano, "YYYY", ano)
+  
+  #path_file(data_link_ano)
+  message("Baixando arquivo: ", dest_file)
+  
+  download.file(data_link_ano, destfile = dest_file, mode = "wb")
+  
+  if(file.exists(dest_file)){
+    return(dest_file)
+  }
+  
+  return(paste0("Nao foi possivel baixar o arquivo: ", dest_file))  
+}
+
+tic()
+
+start_y <- tabela4$periodo[1]
+end_y <- tabela4$periodo[2]
+modelos <- tabela4$modelo
+variaveis <- tabela4$var_abrev
+
+baixados_temp <- lapply(start_y : end_y,
+                        function(iano) down_nmme(modelo = modelos, ano = iano)
+)
+
+
+toc()
+```
+
+Download previsão retrospectiva em grade das temperaturas máxima e mínima para o modelo NCAR-CESM1.
+```{r}
+tabela5 <- data.table(modelo = "NCAR-CESM1",
+                      periodo = c(1980, 2010),
+                      variaveis = c("Daily minimum of average 2-m temperature (K)",
+                                    "Daily maximum of average 2-m temperature (K)"),
+                      var_abrev = c("tsmx", "tsmn")
+                      )
+
+# Baixa o arquivo anual da previsao retrospectiva do modelo da tabela5
+
+down_nmme <- function(ano = "x", modelo = "y", variavel = "z"){
+  
+  ano <- as.character(ano)
+  
+  data_link <- paste0(
+    "http://iridl.ldeo.columbia.edu/SOURCES/.Models/.NMME/",
+    # modelo
+    ".modelo/.HINDCAST/.MONTHLY/",
+    # variavel
+    ".variavel/",
+    # Forecast Start Time (forecast_reference_time)
+    "S/%280000%201%20Jan%20YYYY%29%280000%2030%20Dec%20YYYY",
+    # sub dominio
+    "%29RANGEEDGES/X/%2830W%29%2885W%29RANGEEDGES/Y/%2860S%29%2815N%29RANGEEDGES/",
+    # nome dop arq default
+    "data.nc"
+  )
+  
+  prefix <- paste0("nmme_", variavel, "_", modelo, "_", ano) 
+  dest_file <- path("/home/andreza/github/download-hindcast-NMME/output", 
+                    str_replace(path_file(data_link), "data", prefix)
+  )
+  
+  Sys.sleep(1)
+  
+  data_link_ano <- str_replace_all(data_link, "variavel", variavel)
+  data_link_ano <- str_replace_all(data_link_ano, "modelo", modelo)
+  data_link_ano <- str_replace_all(data_link_ano, "YYYY", ano)
+  
+  #path_file(data_link_ano)
+  message("Baixando arquivo: ", dest_file)
+  
+  download.file(data_link_ano, destfile = dest_file, mode = "wb")
+  
+  if(file.exists(dest_file)){
+    return(dest_file)
+  }
+  
+  return(paste0("Nao foi possivel baixar o arquivo: ", dest_file))  
+}
+
+tic()
+
+start_y <- tabela5$periodo[1]
+end_y <- tabela5$periodo[2]
+modelos <- tabela5$modelo
+variaveis <- tabela5$var_abrev
+
+baixados_temp <- lapply(start_y : end_y,
+                        function(iano) down_nmme(modelo = modelos, ano = iano)
+)
+
+toc()
+```
+
+
+Download previsão retrospectiva em grade das temperaturas para o modelo NCEP-CFSv2.
+```{r}
+tabela6 <- data.table(modelo = "NCEP-CFSv2",
+                      periodo = c(1982, 2010),
+                      variaveis = "Reference Temperature (K)",
+                      var_abrev = "tref"
+                      )
+
+# Baixa o arquivo anual da previsao retrospectiva dos modelos da tabela6
+
+down_nmme <- function(ano = "x", modelo = "y", variavel = "z"){
+  
+  ano <- as.character(ano)
+  
+  data_link <- paste0(
+    "http://iridl.ldeo.columbia.edu/SOURCES/.Models/.NMME/",
+    # modelo
+    ".modelo/.HINDCAST/.MONTHLY/",
+    # variavel
+    ".variavel/",
+    # Forecast Start Time (forecast_reference_time)
+    "S/%280000%201%20Jan%20YYYY%29%280000%2030%20Dec%20YYYY",
+    # sub dominio
+    "%29RANGEEDGES/X/%2830W%29%2885W%29RANGEEDGES/Y/%2860S%29%2815N%29RANGEEDGES/",
+    # nome dop arq default
+    "data.nc"
+  )
+  
+  prefix <- paste0("nmme_", variavel, "_", modelo, "_", ano) 
+  dest_file <- path("/home/andreza/github/download-hindcast-NMME/output", 
+                    str_replace(path_file(data_link), "data", prefix)
+  )
+  
+  Sys.sleep(1)
+  
+  data_link_ano <- str_replace_all(data_link, "variavel", variavel)
+  data_link_ano <- str_replace_all(data_link_ano, "modelo", modelo)
+  data_link_ano <- str_replace_all(data_link_ano, "YYYY", ano)
+  
+  #path_file(data_link_ano)
+  message("Baixando arquivo: ", dest_file)
+  
+  download.file(data_link_ano, destfile = dest_file, mode = "wb")
+  
+  if(file.exists(dest_file)){
+    return(dest_file)
+  }
+  
+  return(paste0("Nao foi possivel baixar o arquivo: ", dest_file))  
+}
+
+tic()
+
+start_y <- tabela6$periodo[1]
+end_y <- tabela6$periodo[2]
+modelos <- tabela6$modelo
+variaveis <- tabela6$var_abrev
+
+baixados_temp <- lapply(start_y : end_y,
+                        function(iano) down_nmme(modelo = modelos, ano = iano)
+)
+
+toc()
+```

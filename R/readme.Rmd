@@ -1,0 +1,105 @@
+---
+title: "Teste para download da previsao retrospectiva do NMME"
+author: Andreza Santos
+date: "12/29/2020"
+output: html_document
+---
+
+## Em contrução
+
+Scripts para baixar arquivos anuais da previsão retrospectiva de diferentes modelos do Sistema NMME (North Ametica Multi Model Ensemble) para a America do Sul (AS).
+Os arquivos são previsões restrospectivas de precipitação, temperatura máxima e temperatura mínima do repositório de dados on-line IRI/LDEO Climate Data Library (http://iridl.ldeo.columbia.edu/). Neste script, os dados estão recortados para a AS, incluindo os 12 tempos de antecedencia e os 10 tempos de inicio da previsao.
+
+```{r setup, include=FALSE}
+pcks <- c("terra", "tidync", "tidyverse", "fs", "tictoc", "data.table")
+easypackages::libraries(pcks)
+options(timeout=150)
+```
+
+Download previsão retrospectiva em grade da precipitação e temperatura máxima e mínima para os modelos CanCM4i, CanSIPSv2, CMC2-CanCM4 e GEM-NEMO.
+```{r}
+tabela1 <- data.table(modelo = c("CanCM4i",
+                                 "CanSIPSv2",
+                                 "CMC2-CanCM4",
+                                 "GEM-NEMO"),
+                      centro = c("Canadian Meteorological Centre (CMC) – Canada",
+                                 "Canadian Meteorological Centre (CMC) – Canada",
+                                 "Canadian Meteorological Centre (CMC) – Canada",
+                                 "Canadian Meteorological Centre (CMC) – Canada",
+                                 "Recherche en Prévision Numérique (RPN)"),
+                      periodo = c("1981", "1983"),
+                      n_membros = c(10, 20, 10, 10),
+                      lead = c("0.5-11.5", "0.5-11.5", "0.5-11.5", "0.5-11.5"),
+                      referencia = c("Kirtman et al. (2014)",
+                                     "Kirtman et al. (2014)",
+                                     "Merryfield et al. (2013)",
+                                     "Kirtman et al. (2014)"),
+                      variaveis = c("Precipitation (prec; mm/day)",
+                                    "Maximum Temperature (tmax; K)",
+                                    "Minimum Temperature (tmin; K)"),
+                      var_abrev = c("prec","tmax", "tmin")
+                      )
+
+# Baixa o arquivo anual da previsao retrospectiva dos modelos da tabela1
+
+down_nmme <- function(ano = "x", modelo = "y", variavel = "z"){
+  
+  ano <- as.character(ano)
+  
+  data_link <- paste0(
+    "http://iridl.ldeo.columbia.edu/SOURCES/.Models/.NMME/",
+    # modelo
+    ".modelo/.HINDCAST/.MONTHLY/",
+    # variavel
+    ".variavel/",
+    # Forecast Start Time (forecast_reference_time)
+    "S/%280000%201%20Jan%20YYYY%29%280000%2030%20Dec%20YYYY",
+    # sub dominio
+    "%29RANGEEDGES/X/%2830W%29%2885W%29RANGEEDGES/Y/%2860S%29%2815N%29RANGEEDGES/",
+    # nome dop arq default
+    "data.nc"
+  )
+  
+  prefix <- paste0("nmme_", variavel, "_", modelo, "_", ano) 
+  dest_file <- path("/home/andreza/github/download-hindcast-NMME/output", 
+                    str_replace(path_file(data_link), "data", prefix)
+  )
+  
+  Sys.sleep(1)
+  
+  data_link_ano <- str_replace_all(data_link, "variavel", variavel)
+  data_link_ano <- str_replace_all(data_link_ano, "modelo", modelo)
+  data_link_ano <- str_replace_all(data_link_ano, "YYYY", ano)
+  
+  #path_file(data_link_ano)
+  message("Baixando arquivo: ", dest_file)
+  
+  download.file(data_link_ano, destfile = dest_file, mode = "wb")
+  
+  if(file.exists(dest_file)){
+    return(dest_file)
+  }
+  
+  return(paste0("Nao foi possivel baixar o arquivo: ", dest_file))  
+}
+
+tic()
+
+start_y <- tabela1$periodo[1]
+end_y <- tabela1$periodo[2]
+modelos <- tabela1$modelo
+variaveis <- tabela1$var_abrev
+
+baixados_prec <- lapply(start_y : end_y,
+                        function(iano) down_nmme(modelo = modelos, ano = iano)
+)
+baixados_temp <- lapply(start_y : end_y,
+                        function(iano) down_nmme(modelo = modelos, variavel = variaveis, ano = iano)
+)
+# baixados_dados <- lapply(start_y : end_y,
+#                         function(iano) down_nmme(modelo = modelos, variavel = variaveis, ano = iano)
+# )
+
+toc()
+```
+
