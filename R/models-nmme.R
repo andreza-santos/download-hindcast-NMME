@@ -4,12 +4,6 @@ library(data.table)
 # anos <- 1980:2018
 # variaveis <- c("prec", "tmax", "tmin", "t2mmax", "t2mmin", "tsmx", "tsmn", "tref")
 
-# variaveis <- c("prec", "prec", "prec", "prec", "prec", "prec", "prec", "prec",
-#                "tmax", "tmax", "tmax", "tmax", "tmax", "t2mmax", "tsmx", "tref",
-#                "tmin", "tmin", "tmin", "tmin", "tmin", "t2mmin", "tsmn")
-temp <- c("tmax", "tmax", "tmax", "tmax", "tmax", "t2mmax", "tsmx", "tref",
-               "tmin", "tmin", "tmin", "tmin", "tmin", "t2mmin", "tsmn")
-
 #tabela_control <- expand.grid(variaveis, modelos, anos) %>%
 #  as.data.frame() %>%
 #  setNames(c("var", "modelo", "ano")) %>%
