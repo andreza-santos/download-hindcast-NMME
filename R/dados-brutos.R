@@ -1,6 +1,3 @@
-
-# library(terra)
-# library(tidyverse)
 pcks <- c("terra", "tidyverse", "here", "checkmate", "metR", "fs", "glue")
 easypackages::libraries(pcks)
 
@@ -155,5 +152,12 @@ data_model_lt <- function(
 
 
 # Próximo passo: fazer looping para escrever arquivos RDS para todos lead times.
-
+data_for_lt <- lapply(x : y, # 0.5 : 11.5
+                      function(lt)
+                        data_model_lt(
+                          lead_time = lt,
+                          nc_model_files = model_files,
+                          var_name = "prec"
+                        )
+)
 
