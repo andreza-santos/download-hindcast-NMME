@@ -19,7 +19,7 @@ here()
 # unzip_ncs()
 
 ## Funções para processamento dos dados netcdf----------------------------------
-source(here("R", "data-proc-nc"))
+source(here("R", "data-proc-nc.R"))
 
 #-------------------------------------------------------------------------------
 nc_dir <- here("output", "prec")
@@ -39,20 +39,34 @@ model_nm <- "CanCM4i"
 model_files <- nc_files[grep(model_nm, nc_files)]
 
 # variaveis e dimensoes com funcao do pacote metR
-GlanceNetCDF(model_files[1])
+nc_info <- GlanceNetCDF(model_files[1])
+nc_info
+# nc_info é uma lista
+#str(info)
+# lead time pode ser obtido dela
+str(nc_info$dims$L)
+(lt <- nc_info$dims$L$vals)
 
 
-
-
-
-
-# Próximo passo: fazer looping para escrever arquivos RDS para todos lead times.
-data_for_lt <- lapply(x : y, # 0.5 : 11.5
-                      function(lt)
+# Processamento dos dados de um modelo, para cada lead time,
+# agregando os dados de todos os anos.
+rds_files_by_lt <- lapply(lt,
+                      function(i_lt){
+                        cat(i_lt, "\n")
                         data_model_lt(
-                          lead_time = lt,
+                          lead_time = i_lt,
                           nc_model_files = model_files,
                           var_name = "prec"
                         )
-)
+                      }
+) 
+
+rds_files_by_lt <- unlist(rds_files_by_lt)
+rds_files_by_lt
+
+
+# Próximo passo aplicar aos demais modelos 
+# looping em 'model_nm' 
+# escrever função que a partir de model_nm retorne lista de arquivos rds
+# como a acima
 
