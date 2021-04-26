@@ -80,6 +80,7 @@ data_model_lt <- function(
     readr::write_rds(DT, dt_file)
     checkmate::check_file_exists(dt_file)
     message("data were save at ", "\n", dt_file)
+    return(dt_file)
   }
   DT
 }
