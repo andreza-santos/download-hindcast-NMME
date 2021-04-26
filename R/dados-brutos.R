@@ -15,10 +15,11 @@ here()
 
 
 ## util somente no caso de obter os dados do google drive ----------------------
-# source("R", "unzip-nc.R")
+# source(here("R", "unzip-nc.R"))
 # unzip_ncs()
 
-## Funções para processamento dos dados netcdf
+## Funções para processamento dos dados netcdf----------------------------------
+source(here("R", "data-proc-nc"))
 
 #-------------------------------------------------------------------------------
 nc_dir <- here("output", "prec")
