@@ -13,9 +13,11 @@ easypackages::libraries(pcks)
 here()
 # "~/Dropbox/github/my_reps/lhmet/download-hindcast-NMME"
 
+
 ## util somente no caso de obter os dados do google drive ----------------------
 # source("R", "unzip-nc.R")
 # unzip_ncs()
+
 
 #-------------------------------------------------------------------------------
 nc_dir <- here("output", "prec")
