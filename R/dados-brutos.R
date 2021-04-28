@@ -69,4 +69,24 @@ rds_files_by_lt
 # looping em 'model_nm' 
 # escrever função que a partir de model_nm retorne lista de arquivos rds
 # como a acima
+# Abrir script que contém tabela com dados dos modelos
+source("R/models-nmme.R")
 
+# Extrair nome dos modelos para um vetor
+models_nm <- tabela1$modelo
+# names(models_nm)
+
+# Arquivos por modelo
+list_model_files <- lapply(models_nm, function(i_model){nc_files[grep(i_model, nc_files)]})
+
+# Mesma função anterior, mas para todos os modelos
+rds_files_by_lt <- for(i in list_model_files) lapply(lt,
+                          function(j_lt){
+                            cat(j_lt, "\n")
+                            data_model_lt(
+                              lead_time = j_lt,
+                              nc_model_files = i,
+                              var_name = "prec"
+                            )
+                          }
+) 
