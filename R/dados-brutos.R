@@ -4,8 +4,20 @@ easypackages::libraries(pcks)
 ## Funções para processamento dos dados netcdf------------------------------
 source(here("R", "data-proc-nc.R"))
 
+## util somente no caso de obter os dados do google drive ----------------------
+# source(here("R", "unzip-nc.R"))
+# unzip_ncs()
+
 ## listar todos os arquivos das previsões retrospectivas da precipitação CanCM4i
 nc_dir <- here("output", "prec")
+
+# count_ncs <- fs::dir_ls(nc_dir) %>%
+#   fs::path_ext() %>%
+#   table()
+## total de arquivos nc
+# count_ncs
+#  271
+
 nc_files <- fs::dir_ls(path = nc_dir, glob = "*.nc")
 
 model_counts <- nc_files_by_model_year(nc_files)
@@ -26,6 +38,20 @@ model_counts <- nc_files_by_model_year(nc_files)
 (model_nms <- model_counts$modelo)
 #files_model <- nc_files[grep(model_nms, nc_files)]
 
+
+# # para obter informacao do leat time
+# model_nm <- "CanCM4i"
+# model_files <- nc_files[grep(model_nm, nc_files)]
+# # variaveis e dimensoes com funcao do pacote metR
+# nc_info <- GlanceNetCDF(model_files[1])
+# nc_info
+# # nc_info é uma lista
+# #str(info)
+# # lead time pode ser obtido dela
+# str(nc_info$dims$L)
+# (lt <- nc_info$dims$L$vals)
+
+
 # looping para processar dados (excluindo os modelos já processados)
 map(model_nms,
     function(imodel){
@@ -34,44 +60,5 @@ map(model_nms,
       gc()
       proc_ncs_by_lt(model = imodel, ncfiles_d = nc_dir)
     })
-
-
-#----------------------------------------------------------------------------
-nc_dir <- here("output", "prec")
-
-
-## listar todos os arquivos das previsões retrospectivas da precipitação CanCM4i
-nc_files <- fs::dir_ls(path = nc_dir, glob = "*.nc")
-path_file(nc_files)
-
-# como o nome dos arquivos especifica o nome dos modelos
-model_nm <- "CanCM4i"
-model_files <- nc_files[grep(model_nm, nc_files)]
-
-# variaveis e dimensoes com funcao do pacote metR
-nc_info <- GlanceNetCDF(model_files[1])
-nc_info
-# nc_info é uma lista
-#str(info)
-# lead time pode ser obtido dela
-str(nc_info$dims$L)
-(lt <- nc_info$dims$L$vals)
-
-
-# Processamento dos dados de um modelo, para cada lead time,
-# agregando os dados de todos os anos.
-rds_files_by_lt <- lapply(lt,
-                          function(i_lt){
-                            cat(i_lt, "\n")
-                            data_model_lt(
-                              lead_time = i_lt,
-                              nc_model_files = model_files,
-                              var_name = "prec"
-                            )
-                          }
-) 
-
-rds_files_by_lt <- unlist(rds_files_by_lt)
-rds_files_by_lt
 
 
