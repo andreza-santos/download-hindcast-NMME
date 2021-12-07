@@ -28,7 +28,7 @@ easypackages::libraries(c("tidyverse"))
 # Descrição
 
 -   `test-down-nmme.R`: *Download* dos dados por modelo e ano, no format
-    NetCDF.
+    NetCDF. O domínio espacial dos dados é a América do Sul.
 
     -   depende do script `models-nmme.R` que gera objeto chamado
         `tabela1` com informações dos modelos, como nomes e períodos.
@@ -36,11 +36,13 @@ easypackages::libraries(c("tidyverse"))
     -   arquivos de saída em `output/prec` no padrão
         `nmme_{variavel}_{modelo}_{ano}.nc`
 
+> PAREIAQUI
+
 -   `dados-brutos.R`:
 
     -   depende do script `data-proc-nc.R` que contém as funções para
         extrair os dados de todos arquivos netcdf de um dado modelo,
         para um dado *lead time* (L, varia de 0.5 a 11.5).
 
-    -   arquivos de saída no fomato RDS segundo o padrão
+    -   arquivos de saída no fomato RDS no padrão
         `nmme_{var_name}_{model_id}_lt{lead_time}.RDS`

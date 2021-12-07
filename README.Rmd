@@ -29,7 +29,6 @@ easypackages::libraries(c("tidyverse"))
 
 # Descrição
 
-
 - `test-down-nmme.R`: *Download* dos dados por modelo e ano, no format NetCDF. O domínio espacial dos dados é a América do Sul.
 
   - depende do script `models-nmme.R` que gera objeto chamado `tabela1` com informações dos modelos, como nomes e períodos.
