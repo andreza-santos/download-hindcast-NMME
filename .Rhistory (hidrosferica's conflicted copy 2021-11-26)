@@ -1,0 +1,512 @@
+# resulta na coluna 'data' com os pontos de grade do domínio
+# cada linha corresponde a previsão de um membro para um mês de inicialização
+# 456 (varia por modelo) meses x 456 linhas
+# dimensions : 76, 56, 4256, 1  (nrow, ncol, ncell, nlayers)
+ens_data_nest <- ens_data %>%
+mutate(S = lubridate::as_date(S)) %>% #as_tibble()
+group_by(model, S, L) %>%
+nest()
+# tic()
+# basin_average(datagrid = ens_data_nest[["data"]][[1]])
+# toc()
+# 5.526 sec elapsed
+#ength(ens_data_nest[["data"]]) * 5.5/3600
+#[1] 6.6 horas
+#tic()
+plan(multisession, workers = 8)
+#furrr::future_map(ens_data_nest[1:8,"data"][[1]] , ~basin_average(.x))
+bas_avg_model <- furrr::future_map(ens_data_nest[["data"]] , ~basin_average(.x))
+#toc()
+gc()
+mutate(ens_data_nest, basin_avg = bas_avg_model)
+}
+seq_along(ens_files)
+cat(ens_files[i], "\n")
+ens_files
+i = 1
+cat(path_file(ens_files[i]), "\n")
+gc()
+ens_files <- here("output", "rds") %>%
+dir_ls(regexp = "ensemble")
+length(ens_files)
+basin_avg_model <- function(file_model){
+# file_model <- ens_files[1]
+ens_data <- readr::read_rds(file_model)
+# agrupando dados por mes de inicialização(S) e leadtime (L)
+# resulta na coluna 'data' com os pontos de grade do domínio
+# cada linha corresponde a previsão de um membro para um mês de inicialização
+# 456 (varia por modelo) meses x 456 linhas
+# dimensions : 76, 56, 4256, 1  (nrow, ncol, ncell, nlayers)
+ens_data_nest <- ens_data %>%
+mutate(S = lubridate::as_date(S)) %>% #as_tibble()
+group_by(model, S, L) %>%
+nest()
+# tic()
+# basin_average(datagrid = ens_data_nest[["data"]][[1]])
+# toc()
+# 5.526 sec elapsed
+#ength(ens_data_nest[["data"]]) * 5.5/3600
+#[1] 6.6 horas
+#tic()
+plan(multisession, workers = 8)
+#furrr::future_map(ens_data_nest[1:8,"data"][[1]] , ~basin_average(.x))
+bas_avg_model <- furrr::future_map(ens_data_nest[["data"]] , ~basin_average(.x))
+#toc()
+gc()
+mutate(ens_data_nest, basin_avg = bas_avg_model)
+}
+tic()
+out_basin_avgs <- map_df(#seq_along(ens_files),
+1:2,
+function(i) {
+# i = 1
+cat(path_file(ens_files[i]), "\n")
+basin_avg_model(file_model = ens_files[i])
+})
+toc()
+gc()
+q("no")
+25+42+16
+25+42+16 -60
+pcks <- c("raster", "terra", "tidyverse", "here",
+"checkmate", "metR", "fs", "lubridate",
+"tictoc", "furrr")
+easypackages::libraries(pcks)
+source(here("R", "data-proc-basin.R"))
+## poligonos bacias ------------------------------------------------------------
+# arquivo RDS disponibilizado em
+pols_inc <- readr::read_rds(here("input", "poligonos-bacias-incrementais.RDS")) %>%
+sf::st_transform(crs = "+proj=longlat +datum=WGS84") %>%
+dplyr::select(codONS, nome, area)
+pols_inc_sp <- as(pols_inc, "Spatial")
+#plot(pols_inc_sp)
+## dados ensemble -------------------------------------------------------------
+ens_files <- here("output", "rds") %>%
+dir_ls(regexp = "ensemble")
+length(ens_files)
+ens_files <- ens_files[-c(1,8)]
+ens_files
+ens_files[2]
+imodel <- "CanCM4i"
+imodel <- "CanCM4i"
+#
+# imodel <- "CanCM4i"
+# rds_dts <- dates_from_model_rds_files(here("output/rds/basin-avgs", imodel))
+model <- "CanCM4i"
+# r
+rds_dts <- dates_from_model_rds_files(here("output/rds/basin-avgs", imodel))
+range(rds_dts)
+ens_files <- here("output", "rds") %>%
+dir_ls(regexp = "ensemble")
+length(ens_files)
+ens_files
+file_model <- ens_files[1]
+tic()
+ens_data <- readr::read_rds(file_model)
+toc()
+file_model
+imodel <- fs::path_file(file_model) %>%
+stringr::str_replace("ensemble-", "") %>%
+stringr::str_replace("\\.RDS", "")
+imodel
+ens_data <- ens_data %>%
+##   dplyr::filter(S >= lubridate::as_date("1997-07-01"))
+dplyr::filter(S >= lubridate::as_date("2005-03-01"))
+ens_data <- ens_data %>%
+dplyr::mutate(S = lubridate::as_date(S)) %>%
+dplyr::group_by(model, S, L) %>%
+tidyr::nest() %>%
+ungroup()
+ens_data
+tail(ens_data)
+tic()
+#plan(multisession, workers = 6)
+# samp <- ens_data[1:8,"data"]
+# bas_avg_model <- furrr::future_map(samp[["data"]], ~basin_average(.x))
+# bas_avg_model <- map(samp[["data"]], ~basin_average(.x))
+# bas_avg_model <- furrr::future_map(ens_data[["data"]] , ~basin_average(.x))
+#model_basin_avg_files <- furrr::future_map(
+model_basin_avg_files <- purrr::map(
+1:nrow(ens_data),
+#1:12,
+function(isl) {
+# isl = 8
+iSLM <- select(ens_data, S:model)[isl, ]
+basin_file <- here("output/rds/basin-avgs", basin_avg_file_name(slm = iSLM))
+if(fs::file_exists(basin_file)) return(basin_file)
+bas_avg <- basin_average(ens_data[["data"]][[isl]])
+basin_data <- dplyr::bind_cols(iSLM, bas_avg)
+readr::write_rds(basin_data, basin_file)
+gc()
+cat(basin_file, "\n")
+basin_file
+}
+)
+toc()
+pcks <- c("raster", "terra", "tidyverse", "here",
+"checkmate", "metR", "fs", "lubridate",
+"tictoc", "furrr")
+easypackages::libraries(pcks)
+basin_avg_d <- here("output/rds/basin-avgs")
+basin_avg_d
+dir_ls(basin_avg_d)
+dir_ls(basin_avg_d, recurse = TRUE)
+dir_ls(basin_avg_d, recurse = TRUE, type = "file")
+dir_ls(basin_avg_d, recurse = TRUE, type = "file", glob = "*.RDS")
+basin_avg_d
+basin_avg_d <- here("output/rds/basin-avgs")
+dir_ls(basin_avg_d)
+nmme_models_d
+nmme_models_d <- dir_ls(basin_avg_d)
+nmme_models_d
+nmme_models_d[2]
+nmme_models_d[5]
+model_dir <- nmme_models_d[5]
+dir_ls(model_dir, type = "file", glob = "*.RDS")
+files_rds <- dir_ls(model_dir, type = "file", glob = "*.RDS")
+readr::read_rds
+model_dir <- nmme_models_d[5]
+files_rds <- dir_ls(model_dir, type = "file", glob = "*.RDS")
+data_rds <- map_df(files_rds, readr::read_rds)
+data_rds
+data_rds %>%
+pivot_wider(names_from = "L", values_from = "prec")
+data_rds %>%
+pivot_wider(names_from = "L", values_from = "prec", names_prefix = "lead_")
+data_rds
+data_rds %>%
+group_by(model, codONS, S) %>%
+arrange(L)
+data_rds %>%
+arrange(codONS)
+data_rds %>%
+arrange(codONS, L)
+data_rds %>%
+arrange(codONS, S, L)
+data_rds %>%
+arrange(codONS, S, L) %>%
+#group_by(model, codONS, S) %>%
+#arrange(L)
+pivot_wider(names_from = "L", values_from = "prec", names_prefix = "lead_")
+d <- data_rds %>%
+arrange(codONS, S, L) %>%
+#group_by(model, codONS, S) %>%
+#arrange(L)
+pivot_wider(names_from = "L", values_from = "prec", names_prefix = "lead_")
+d
+d[1]
+distinct(d[1], S)
+distinct(d[1], S) %>%
+mutate(year = lubridate::round_date(S, "month"))
+distinct(d[1], S) %>%
+mutate(date_r = lubridate::round_date(S, "month"))
+distinct(d[1], S) %>%
+mutate(date_r = lubridate::round_date(S, "month")) %>%
+View()
+distinct(d[1], S) %>%
+mutate(date_r = lubridate::round_date(S, "month"),
+year = lubridate::year(date_r))
+distinct(d[1], S) %>%
+mutate(date_r = lubridate::round_date(S, "month"),
+year = lubridate::year(date_r)) %>%
+group_by(year) %>%
+tally()
+distinct(d[1], S) %>%
+mutate(date_r = lubridate::round_date(S, "month"),
+year = lubridate::year(date_r)) %>%
+group_by(year) %>%
+tally() %>% View()
+data_rds %>%
+arrange(codONS, S, L)
+distinct(d[1], S) %>%
+mutate(date_r = lubridate::round_date(S, "month"),
+year = lubridate::year(date_r))
+as.Date(1981-01-01)
+as.Date("1981-01-01")
+as.Date("1981-01-01") + (0:11)
+as_date("1981-01-01") + (0:11)
+distinct(d[1], S) %>%
+mutate(date_r = lubridate::round_date(S, "month"),
+year = lubridate::year(date_r))
+distinct(d[1], S)
+data_rds %>%
+arrange(codONS, S, L)
+data_rds %>%
+arrange(codONS, S, L) %>%
+mutate(L = trunc(L))
+data_rds %>%
+arrange(codONS, S, L) %>%
+mutate(L = trunc(L), date_lead = S + L)
+d <- data_rds %>%
+arrange(codONS, S, L) %>%
+mutate(L = trunc(L), date_lead = lubridate::round_date(S, "month") + L)
+d
+data_rds %>%
+arrange(codONS, S, L) %>%
+mutate(L = trunc(L), date_lead = lubridate::round_date(S, "month") + L) %>%
+dplyr::relocate(S, date_lead)
+data_rds %>%
+arrange(codONS, S, L) %>%
+mutate(L = trunc(L), date_lead = lubridate::round_date(S, "month") + L) %>%
+dplyr::relocate(S, L, date_lead)
+data_rds %>%
+arrange(codONS, S, L) %>%
+mutate(L = trunc(L), date_lead = lubridate::round_date(S, "month") + L) %>%
+dplyr::relocate(S, L, date_lead)
+data_rds %>%
+arrange(codONS, S, L) %>%
+mutate(L = trunc(L), date_lead = lubridate::round_date(S, "month") + L) %>%
+dplyr::relocate(model, S, L, date_lead)
+source(here("R/data-join-rds.R"))
+source("~/Dropbox/github/my_reps/lhmet/download-hindcast-NMME/R/join-spavg-nmme-basins.R", echo=TRUE)
+nmme_models_d
+readRDS("output/rds/model_counts.RDS")
+source("~/Dropbox/github/my_reps/lhmet/download-hindcast-NMME/R/data-proc-rds.R", echo=TRUE)
+pcks <- c("raster", "terra", "tidyverse", "here",
+"checkmate", "metR", "fs", "lubridate",
+"tictoc")
+easypackages::libraries(pcks)
+source(here("R", "data-proc-rds.R"))
+##------------------------------------------------------------------------------
+path_rds <- here("output", "rds")
+model_counts <- readr::read_rds(here(path_rds, "model_counts.RDS"))
+models <- model_counts$modelo
+#files_rds <- dir_ls(path_rds, pattern = "CanCM4i")
+# Para os arquivos RDS de um modelo, separados por lead time
+# media das previsoes dos 10 membros nos pontos de grade,
+# para cada mes de inicializ., lead time
+ensemble_model_refrcst <- function(imodel){
+# imodel = model_counts$modelo[2]
+#model_name_rds(model_files_rds, vname = "prec")
+cat(imodel, "\n")
+model_files_rds <- dir_ls(path_rds, regexp = imodel)
+ens_model_refcst <- ensemble_refcst_files(model_files_rds)
+out_rds <- here(path_rds,
+paste0("ensemble-", imodel, "-median.RDS")
+)
+saveRDS(ens_model_refcst, file = out_rds)
+out_rds
+}
+# looping nos modelos
+tic()
+map(models, ensemble_model_refrcst)
+toc()
+files_rds
+pcks <- c("raster", "terra", "tidyverse", "here",
+"checkmate", "metR", "fs", "lubridate",
+"tictoc")
+easypackages::libraries(pcks)
+source(here("R", "data-proc-rds.R"))
+##------------------------------------------------------------------------------
+path_rds <- here("output", "rds")
+model_counts <- readr::read_rds(here(path_rds, "model_counts.RDS"))
+models <- model_counts$modelo
+models
+ensemble_model_refrcst <- function(imodel){
+# imodel = model_counts$modelo[2]
+#model_name_rds(model_files_rds, vname = "prec")
+cat(imodel, "\n")
+model_files_rds <- dir_ls(path_rds, regexp = imodel)
+ens_model_refcst <- ensemble_refcst_files(model_files_rds)
+out_rds <- here(path_rds,
+paste0("ensemble-", imodel, "-median.RDS")
+)
+saveRDS(ens_model_refcst, file = out_rds)
+out_rds
+}
+imodel = model_counts$modelo[2]
+#model_name_rds(model_files_rds, vname = "prec")
+cat(imodel, "\n")
+model_files_rds <- dir_ls(path_rds, regexp = imodel)
+model_files_rds
+refcst_rds <- model_files_rds[2];var_name = "prec"
+refcst <- readr::read_rds(refcst_rds)
+refcst <- refcst[,
+.(prec_ensmean = mean(prec),
+prec_enssd = sd(prec)#,
+# mediana e mad (medidas stats + robustas)
+#prec_ensmed = median(prec),
+#prec_ensmad = mad(prec)
+),
+#keyby = .(S, L)
+by = c("S", "L", "X", "Y")
+]
+refcst[, model := model_name_rds(refcst_rds, var_name)]
+refcst
+refcst <- readr::read_rds(refcst_rds)
+refcst <- refcst[,
+.(# mediana e mad (medidas stats + robustas)
+prec_ensmed = median(prec),
+prec_ensmad = mad(prec)
+),
+#keyby = .(S, L)
+by = c("S", "L", "X", "Y")
+]
+refcst[, model := model_name_rds(refcst_rds, var_name)]
+refcst
+source("~/Dropbox/github/my_reps/lhmet/download-hindcast-NMME/R/data-proc-rds.R", echo=TRUE)
+ensemble_model_refrcst <- function(imodel){
+# imodel = model_counts$modelo[2]
+#model_name_rds(model_files_rds, vname = "prec")
+cat(imodel, "\n")
+model_files_rds <- dir_ls(path_rds, regexp = imodel)
+ens_model_refcst <- ensemble_refcst_files(model_files_rds, )
+out_rds <- here(path_rds,
+paste0("ensemble-", imodel, "-median.RDS")
+)
+saveRDS(ens_model_refcst, file = out_rds)
+out_rds
+}
+tic()
+map(models, ensemble_model_refrcst)
+toc()
+ensemble_model_refrcst <- function(imodel){
+# imodel = model_counts$modelo[2]
+#model_name_rds(model_files_rds, vname = "prec")
+cat(imodel, "\n")
+model_files_rds <- dir_ls(path_rds, regexp = imodel)
+ens_model_refcst <- ensemble_refcst_files(model_files_rds)
+out_rds <- here(path_rds,
+paste0("ensemble-", imodel, "-median.RDS")
+)
+saveRDS(ens_model_refcst, file = out_rds)
+out_rds
+}
+# looping nos modelos
+tic()
+map(models, ensemble_model_refrcst)
+toc()
+refcst <- readr::read_rds(refcst_rds)
+refcst
+refcst_rds
+refcst
+refcst
+refcst[,
+.(# mediana e mad (medidas stats + robustas)
+prec_ensmed = median(prec),
+prec_ensmad = mad(prec)
+),
+#keyby = .(S, L)
+by = c("S", "L", "X", "Y")
+]
+ensemble_refcst(model_files_rds[2])
+prec <- NULL
+ensemble_model_refrcst <- function(imodel){
+# imodel = model_counts$modelo[2]
+#model_name_rds(model_files_rds, vname = "prec")
+cat(imodel, "\n")
+model_files_rds <- dir_ls(path_rds, regexp = imodel)
+ens_model_refcst <- ensemble_refcst_files(model_files_rds)
+out_rds <- here(path_rds,
+paste0("ensemble-", imodel, "-median.RDS")
+)
+saveRDS(ens_model_refcst, file = out_rds)
+out_rds
+}
+# looping nos modelos
+tic()
+map(models, ensemble_model_refrcst)
+toc()
+refcst_rds
+pcks <- c("raster", "terra", "tidyverse", "here",
+"checkmate", "metR", "fs", "lubridate",
+"tictoc", "furrr")
+easypackages::libraries(pcks)
+source(here("R", "data-proc-basin.R"))
+## poligonos bacias ------------------------------------------------------------
+# arquivo RDS disponibilizado em
+pols_inc <- readr::read_rds(here("input", "poligonos-bacias-incrementais.RDS")) %>%
+sf::st_transform(crs = "+proj=longlat +datum=WGS84") %>%
+dplyr::select(codONS, nome, area)
+pols_inc_sp <- as(pols_inc, "Spatial")
+#plot(pols_inc_sp)
+## dados ensemble -------------------------------------------------------------
+ens_files <- here("output", "rds") %>%
+dir_ls(regexp = "ensemble")
+length(ens_files)
+ens_files
+out_basin_avg_d <- here("output/rds/basin-avgs")
+checkmate::check_directory_exists(out_basin_avg_d)
+ens_files
+file_model <- ens_files[1]
+tic()
+ens_data <- readr::read_rds(file_model)
+toc()
+datagrid = ens_data[["data"]][[1]]
+datagrid
+ens_data
+ens_data <- ens_data %>%
+dplyr::mutate(S = lubridate::as_date(S)) %>%
+dplyr::group_by(model, S, L) %>%
+tidyr::nest() %>%
+ungroup()
+datagrid = ens_data[["data"]][[1]]
+datagrid
+r <- raster_from_points(datagrid)
+tic()
+avg_basin_raster <- c(t(raster::extract(
+raster(r),
+pols,
+weights = TRUE,
+normalizeWeights = TRUE,
+fun = mean
+)))
+toc()
+pols = pols_inc_sp
+pols
+tic()
+avg_basin_raster <- c(t(raster::extract(
+raster(r),
+pols,
+weights = TRUE,
+normalizeWeights = TRUE,
+fun = mean
+)))
+toc()
+avg_basin
+tic()
+avg_basin <- c(t(raster::extract(
+raster(r),
+pols,
+weights = TRUE,
+normalizeWeights = TRUE,
+fun = mean
+)))
+toc()
+avg_basin
+tibble(codONS = pols$codONS, prec = avg_basin)
+source("~/Dropbox/github/my_reps/lhmet/download-hindcast-NMME/R/data-proc-basin.R", echo=TRUE)
+source("~/Dropbox/github/my_reps/lhmet/download-hindcast-NMME/R/data-proc-basin.R", echo=TRUE)
+getwd()
+"checkmate", "metR", "fs", "lubridate",
+"tictoc", "furrr")
+easypackages::libraries(pcks)
+source(here("R", "data-proc-basin.R"))
+## poligonos bacias ------------------------------------------------------------
+# arquivo RDS disponibilizado em
+pols_inc <- readr::read_rds(here("input", "poligonos-bacias-incrementais.RDS")) %>%
+sf::st_transform(crs = "+proj=longlat +datum=WGS84") %>%
+dplyr::select(codONS, nome, area)
+pols_inc_sp <- as(pols_inc, "Spatial")
+#plot(pols_inc_sp)
+## dados ensemble -------------------------------------------------------------
+ens_files <- here("output", "rds") %>%
+dir_ls(regexp = "ensemble")
+length(ens_files)
+pcks <- c("raster", "terra", "tidyverse", "here",
+"checkmate", "metR", "fs", "lubridate",
+"tictoc", "furrr")
+easypackages::libraries(pcks)
+source(here("R", "data-proc-basin.R"))
+## poligonos bacias ------------------------------------------------------------
+# arquivo RDS disponibilizado em
+pols_inc <- readr::read_rds(here("input", "poligonos-bacias-incrementais.RDS")) %>%
+sf::st_transform(crs = "+proj=longlat +datum=WGS84") %>%
+dplyr::select(codONS, nome, area)
+pols_inc_sp <- as(pols_inc, "Spatial")
+#plot(pols_inc_sp)
+## dados ensemble -------------------------------------------------------------
+ens_files <- here("output", "rds") %>%
+dir_ls(regexp = "ensemble")
+length(ens_files)
+ens_files

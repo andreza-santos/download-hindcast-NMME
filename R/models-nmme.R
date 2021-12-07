@@ -58,9 +58,12 @@ tabela1
 #             )
 
 # verificacao
-#files_nc <- dir_ls("../output", glob = "*.nc")
+files_nc <- dir_ls(here("output/prec"), glob = "*.nc")
+
 #range(rast(files_nc[1])[])
 #range(rast(files_nc[2])[])
-#tidync::hyper_tibble(files_nc[1])
-#tidync::hyper_tibble(files_nc[2])
+nrow((ht_nc <- tidync::hyper_tibble(files_nc[1])))
+table((ht_nc$S))
+nrow((metr_nc <- metR::ReadNetCDF(files_nc[1])))
+table((metr_nc$S))
 #summary(tidync::hyper_tibble(files_nc[2]))

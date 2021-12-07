@@ -62,7 +62,7 @@ down_nmme <- function(ano = 1981, modelo = "CanCM4i", variavel = "prec"){
 
 tic()
 
-source("/home/andreza/Desktop/test-down-NMME/download-hindcast-NMME/R/models-nmme.R")
+source(here("R", "models-nmme.R"))
 
 start_y <- 1980
 end_y <- 2018

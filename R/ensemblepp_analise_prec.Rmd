@@ -1,0 +1,408 @@
+---
+title: "Pós-processamento de previsões por conjunto com o R"
+author: "ADS"
+date: "9/24/2020"
+output: html_document
+editor_options: 
+  chunk_output_type: inline
+---
+
+## Objetivo
+
+Reproduzir Código do Capítulo 11 *ENSEMBLE POSTPROCESSING WITH R* do livro 
+*Statistical postprocessing of ensemble forecasts* que fornece uma breve 
+introdução as funções úteis disponíveis no R para o pós-processamento de 
+previsões por conjunto. O código e os resultados para quatro exemplos típicos
+de pós-processamento de previsões: 
+
+- determinística de temperatura
+
+- probabilística univariada da temperatura
+
+- univariado para precipitação por conjunto
+
+- probabilística bivariada da temperatura e precipitação
+
+Cada um destes exemplos envolve:
+
+1. processamento de dados
+
+2. ajuste de diferentes modelos de pós-processamento 
+
+3. previsão
+
+4. verificação da previsão
+
+
+## Pré-requisitos
+
+Para reprodução dos exemplos são necessários os pacotes:
+
+```{r}
+pcks <- c("ensemblepp",
+          "ensembleBMA",
+          "crch",
+          "gamlss",
+          "ensembleMOS",
+          "SpecsVerification",
+          "scoringRules",
+          "glmx",
+          "ordinal",
+          "pROC",
+          "mvtnorm",
+          # aperfeiçoamentos
+          "dplyr",
+          "tidyr",
+          "lubridate",
+          "ggplot2",
+          "ggpubr",
+          "scales",
+          "ggpmisc",
+          "ggsci",
+          "ggtext",
+          "broom",
+          "rattle",
+          "glue",
+          "readr"
+        ) 
+```
+
+```{r, include = FALSE}
+#install.packages(pcks, dep = TRUE)
+```
+
+
+```{r message=FALSE, warning=FALSE, include=FALSE}
+easypackages::libraries(pcks)
+```
+
+### Funções do Apêndice 11.7.2 do capítulo
+
+Normalmente, o CRPS é calculado pela média do conjunto de teste, que pode ser derivado, por exemplo, com **colMeans()**. Para estimar a distribuição amostral do CRPS médio, é utilizada uma aproximação bootstrapping (método de reamostragem proposto por Efron, 1979) em que os valores médios de CRPS são calculados em 250 amostras de bootstrap. A função simples a seguir extrai 250 amostras com substituição, calcula a CRPS média em cada uma delas e retorna uma matriz com os diferentes métodos de pós-processamento nas colunas e os 250 valores médios de CRPS nas linhas.
+
+```{r bootmean, include=FALSE}
+bootmean <- function(scores, nsamples = 250) {
+  boot <- NULL
+  for(i in 1:nsamples) { 
+    bindex <- sample(nrow(scores), replace = TRUE)
+    boot <- rbind(boot, colMeans(scores[bindex,]))
+  }
+  boot
+}
+```
+
+Essas distribuições de amostragem podem ser visualizadas em um boxplot:
+```{r crps2, eval=FALSE, include=FALSE}
+# Não rodar código
+boxplot(bootmean(crps_all), ylab = "CRPS")
+```
+
+## Pós-processamento da precipitação
+
+Os chunks desta seção mostram as implementações de alguns dos métodos de pós-processamento para precipitação, como regressão logística não homogênea censurada, BMA com distribuições de componentes de mistura gama-discreta e várias variantes de regressão logística. Estes foram utilizados, pois a variável é não negativas e, portanto, não gaussiana, assim, as técnicas de pós-processamento utilizadas para temperatura não podem ser aplicadas diretamente, devido todos os métodos usados assumirem distribuições gaussianas - diretamente ou para os componentes das distribuições. 
+
+### Preparação de dados
+
+Aqui usa-se o conjunto de dados de chuva criada para um ponto no espaço. Este conjunto de dados contém observações de precipitação do sistema SA24 (Liebmann) e previsões de conjunto do NMME, modelo CanCM4i, lead 0, de 1981-2011, dados que podem ser carregados com:
+```{r data-rain}
+rain <- read_rds("~/github/download-hindcast-NMME/output/time0/test-rain-CanCM4i.RDS")
+# rain <- read_rds("~/github/download-hindcast-NMME/output/precmean-models.RDS")
+```
+
+```{r data-rain2}
+dim(rain)
+names(rain)
+```
+
+É comum transformar os dados de precipitação antes de aplicar métodos de pós-processamento. As escolhas comuns são a raiz quadrada (Stauffer et al., 2017; Wilks, 2009) ou a raiz cúbica (Schmeits & Kok, 2010; Sloughter et al., 2007). Para uma comparação fácil entre os métodos, apenas uma transformação de raiz quadrada é usada aqui:
+```{r data-rain3}
+rain <- sqrt(rain)
+```
+
+Apenas os dados dos meses de inverno (boreal) serão considerados:
+```{r data-rain4}
+rain$date <- as.Date(rownames(rain))
+rain <- rain[format(rain$date, "%m") %in% c("12", "01", "02"),]
+```
+
+As médias do conjunto e os desvios-padrão são calculados e os dados são divididos em dados de treinamento e teste.
+```{r data-rain5}
+rain$ensmean <- apply(rain[,2:11], 1, mean)
+rain$enssd   <- apply(rain[,2:11], 1, sd)
+# rain$ensmean <- apply(rain[,2:9], 1, mean)
+# rain$enssd   <- apply(rain[,2:9], 1, sd)
+
+
+raintrain <- rain[rain$date < "2005-03-01",]
+raintest  <- rain[rain$date > "2005-03-01",]
+```
+
+Um gráfico de dispersão de precipitação por previsões médias por conjunto, um histograma de classificação de verificação e um gráfico de habilidade de propagação podem ser criados. O código a seguir também cria um histograma de observações de precipitação:
+```{r rainplots}
+par(mfrow = c(2,2))
+plot(rain~ensmean, raintrain, col = gray(0.2, alpha = 0.4),
+  main = "Scatterplot")
+abline(0, 1, lty = 2)
+
+rank <- apply(raintrain[,1:11], 1, rank)[1,]
+# rank <- apply(raintrain[,1:9], 1, rank)[1,]
+hist(rank, breaks = 0:12 + 0.5, main = "Verification Rank Histogram")
+
+sdcat <- cut(raintrain$enssd, quantile(raintrain$enssd, seq(0, 1, 0.2)))
+boxplot(abs(rain-ensmean)~sdcat, raintrain, ylab = "absolute error",
+  xlab = "ensemble standard deviation", main = "Spread-Skill")
+
+hist(rain$rain, xlab = "square root of precipitation", main = "Histogram")
+```
+
+### Ajuste do modelo
+
+#### Regressão não homogênea
+
+A estimativa de máxima verossimilhança (e CRPS mínima) deste modelo pode ser realizada com `crch()` (recomenda-se a consulta da Seção 11.3 - *Pós-processamento univariado da temperatura*), definindo o ponto de censura `left = 0` e `dist = "logistic"`:
+```{r NGRrainfit}
+cNLR <- crch(rain ~ ensmean | enssd, data = raintrain, left = 0, 
+  dist = "logistic")
+```
+Como alternativa a `crch()`, a estimativa de máxima verossimilhança desse modelo também pode ser obtida por `gamlss()`.
+
+#### Média do modelo bayesiano
+
+Sloughter et al. (2007) propôs uma variante BMA que é adaptada para previsões quantitativas de precipitação. Em vez de distribuições gaussianas, as distribuições de componentes são misturas de distribuições gama e "massas pontuais" em zero (Wilks, 2018, Capítulo 3 deste livro). Uma implementação R deste modelo é fornecida por `fitBMA()` do **ensembleBMA**. Portanto, os dados devem ser convertidos primeiro em objetos "`ensembleData`":
+```{r data-rain6}
+raintrain_eD <- ensembleData(forecasts = raintrain[,2:11],
+  dates = raintrain$date, observations = raintrain$rain,
+  forecastHour = 4320, initializationTime = "00",
+  exchangeable = rep(1, 10)
+  )
+raintest_eD <- ensembleData(forecasts = raintest[,2:11],
+  dates = raintest$date, observations = raintest$rain,
+  forecastHour = 4320, initializationTime = "00", exchangeable = rep(1, 10))
+```
+
+Assim como o caso do BMA gaussiano na Seção 11.3, o ajuste do modelo é realizado com `fitBMA()`, mas com `model = "gamma0"`. Por padrão, os dados são transformados internamente pela raiz cúbica antes do ajuste BMA. No entanto, como os dados aqui já foram transformados em raiz quadrada, a transformação de potência é desligada configurando `control = controlBMAgamma0(power = 1)`:
+```{r BMArainfit}
+gBMA <- fitBMA(raintrain_eD, model = "gamma0", 
+  control = controlBMAgamma0(power = 1))
+```
+
+#### Regressão logística
+
+No R, os modelos linear generalizado (GLMs) geralmente são equipados com `glm()`, que tem uma interface semelhante a `lm()`. Para regressão logística, o preditor deve ser uma variável binária (VERDADEIRO e FALSO ou 0 e 1), que pode, por exemplo, ser criado por operadores relacionais como ">". Além disso, a família deve ser definida como `binomial()`:
+```{r logregrainfit}
+logreg <- glm(rain > 0 ~ ensmean, data = raintrain, family = binomial())
+```
+
+O código do exemplo anterior usa a média do conjunto como o único preditor, porque vários estudos mostraram que incluir o desvio padrão do conjunto como um preditor adicional não melhora as previsões (Hamill et al., 2004; Wilks & Hamill, 2007). Messner, Zeileis, Mayr e Wilks (2014) apontaram que a propagação do conjunto não pode afetar diretamente a incerteza da previsão quando usado como uma variável preditiva padrão e que a mesma pode ser explorada de forma mais eficiente quando usada como uma variável do preditor para a escala da função logística. Esta abordagem pode ser realizada por `hetglm()` a partir de `glmx` onde, semelhante a `crch()`, as variáveis de previsão são especificadas com uma fórmula que separa os preditores de localização e escala por "|".
+```{r hlogregrainfit}
+library("glmx")
+hlogreg <- hetglm(rain > 0 ~ ensmean | enssd, data = raintrain, 
+  family = binomial())
+
+# !optimization failed to converge with message: false convergence (8)
+# model did not converge
+```
+
+Frequentemente, mais de um limite é de interesse, por exemplo, os decis climatológicos (quantis com probabilidades de 0,1 a 0,9):
+```{r rain-quantiles}
+q <- unique(quantile(raintrain$rain, seq(0.1, 0.9, 0.1)))
+```
+Com `unique()`, quantis de valores iguais são mesclados (aqui, os quantis 0,1, 0,2 e 0,3 são zero).
+
+Como uma abordagem simples, a regressão logística pode ser ajustada para cada limite separadamente. O próximo chunk codifica as regressões logísticas separadas (heterocedásticas) e grava os objetos de modelo ajustados em listas:
+```{r combinelogreg}
+logreg2 <- hetlogreg2 <- list()
+for(i in 1:length(q)){
+  logreg2[[i]] <- glm(rain <= q[i] ~ ensmean, data = raintrain, 
+    family = binomial())
+  hetlogreg2[[i]] <- hetglm(rain <= q[i] ~ ensmean | enssd, 
+    data = raintrain, family = binomial())
+}
+```
+
+Um problema com essa abordagem é que as linhas de regressão para os diferentes limiares podem se cruzar, o que levará a probabilidades negativas absurdas para os intervalos entre esses limiares. Wilks (2009) propôs evitar esse problema com uma regressão logística estendida que se ajusta a uma única equação para todos os limiares, com o limiar como variável preditora adicional (ver Wilks, 2018, Capítulo 3 deste livro). Além de evitar probabilidades negativas, essa regressão logística estendida também pode fornecer distribuições preditivas contínuas completas. Messner, Zeileis, et al. (2014) estenderam ainda mais essa abordagem para explorar de forma eficiente a propagação do conjunto, semelhante à regressão logística heterocedástica (`hetglm()`) ou regressão não homogênea (Eqs. 11.6-11.8 deste capítulo). `hxlr()` de **crch** fornece uma implementação desta regressão logística estendida heterocedástica (HXLR) com uma interface semelhante a `crch()` ou `hetglm()`:
+```{r HXLRfit}
+HXLR <- hxlr(rain ~ ensmean | enssd, data = raintrain, thresholds = q)
+```
+
+Probabilidade proporcional ou regressão logística ordenada (OLR; Hemri, Haiden, & Pappenberger, 2016; Messner, Mayr, et al., 2014) é outra abordagem de regressão logística intimamente relacionada, que é aplicável a uma coleção finita de limiares e evita cruzamento de linhas de regressão, restringindo-as a serem paralelas. Implementações de OLR podem ser encontradas em `polr()` de **MASS** ou `clm()` de **ordinal**. Nessas funções, o preditor tem que ser um fator ordenado que pode, por exemplo, ser criado por `cut()`:
+```{r raincat}
+raintrain$raincat <- cut(raintrain$rain, c(-Inf, q, Inf)) 
+```
+
+`clm()` também tem uma opção para especificar variáveis preditoras para a escala com uma segunda fórmula `scale`:
+```{r clmrainfit}
+library("ordinal")
+OLR <- clm(raincat ~ ensmean, scale = ~ enssd, data = raintrain)
+```
+
+### Previsão
+
+As previsões para os modelos que foram ajustados anteriormente são criadas de forma semelhante às previsões de temperatura. No entanto, os modelos de regressão logística binária e ordenada não suportam previsões de densidade ou quantis, e apenas previsões de probabilidade podem ser derivadas.
+
+Para cNLR, os parâmetros de localização e escala da distribuição logística preditiva podem ser derivados com `predict()`:
+```{r NGRrainfc}
+location_cNLR <- predict(cNLR, newdata = raintest, type = "location")
+scale_cNLR    <- predict(cNLR, newdata = raintest, type = "scale")
+```
+
+Densidade, quantis e probabilidades são então derivados de forma semelhante às previsões de temperatura, mas com funções de distribuição para a distribuição logística censurada (`dclogis ()`, `pclogis ()`, `qclogis ()` de **crch**).
+```{r quantilepred2}
+par(mfrow = c(1,2))
+quant_cNLR <- predict(cNLR, newdata = raintest, type = "quantile", 
+  at = c(0.25, 0.5, 0.75))
+plot(quant_cNLR[1:16, 2], type = "l", lty = 2, ylim = c(0, 20),
+  ylab = "square root of precipitation", xlab = "date", xaxt = "n")
+axis(1, at = seq(1, 20, 6), raintest$date[seq(1, 20, 6)])
+polygon(c(1:16, 16:1), c(quant_cNLR[1:16, 1], quant_cNLR[16:1, 3]), 
+  col = gray(0.1, alpha = 0.1), border = FALSE)
+lines(raintest$rain[1:20])
+```
+```{r cdfpred2}
+cdf_cNLR <- sapply(q, function(q) plogis(q, location_cNLR, scale_cNLR))
+plot(1 - cdf_cNLR[1:16], type = "l", ylab = "Pr(rain>0)",
+  xlab = "date", xaxt = "n", ylim = c(0,2))
+axis(1, at = seq(1, 20, 6), raintest$date[seq(1, 20, 6)])
+points(raintest$rain>0) 
+```
+
+
+As densidades preditivas de cNLR, BMA e HXLR podem ser plotadas com:
+```{r raindensities}
+par(mfrow = c(1,3))
+x <- c(0, seq(1e-8, 6.5, 0.1))
+## cNLR
+plot(x, dclogis(x, location_cNLR[2], scale_cNLR[2], left = 0), type = "l",
+  lwd = 3, xlab = "Square root of precipitation", ylab = "PDF", main = "cNLR")
+abline(v = raintest$rain[2], lwd = 3, col = "orange")
+## BMA
+plot(gBMA, raintest_eD[2,])
+title(main = "BMA")
+## HXLR
+location_HXLR <- predict(HXLR, newdata = raintest, type = "location")
+scale_HXLR    <- predict(HXLR, newdata = raintest, type = "scale")
+plot(x, dclogis(x, location_HXLR[2], scale_HXLR[2], left = 0), type = "l",
+  lwd = 3, xlab = "Square root of precipitation", ylab = "PDF", main = "HXLR")
+abline(v = raintest$rain[2], lwd = 3, col = "orange")
+```
+
+
+Aqui, a verificação concentra-se principalmente nas previsões de probabilidade limite. Para BMA, essas previsões podem ser geradas com `cdf()`:
+```{r BMArainfc}
+cdf_gBMA <- ensembleBMA::cdf(gBMA, raintest_eD, values = q)
+```
+
+Para regressão logística binária (heterocedástica), essas probabilidades são calculadas com `predict ()`, onde `type = "response"` deve ser definido. O código a seguir usa `sapply()` para prever os modelos de regressão logística e criar uma matriz de probabilidades cumulativas para todos os limites.
+```{r code chunk number 79: logregrainfc}
+cdf_logreg <- sapply(logreg2, function(mod)
+  predict(mod, newdata = raintest, type = "response"))
+cdf_hetlogreg <- sapply(hetlogreg2, function(mod) 
+  predict(mod, newdata = raintest, type = "response"))
+```
+
+`predict()` também é usado para previsões de probabilidade limite de HXLR e OLR com `type = "cumprob"` e `type = "cum.prob"`, respectivamente.
+```{r HXLR-OLRrainfc}
+cdf_HXLR <- predict(HXLR, newdata = raintest, type = "cumprob")
+cdf_OLR <- predict(OLR, newdata = raintest, type = "cum.prob")$cprob1[,-7]
+```
+
+As probabilidades de previsão dos diferentes métodos são combinadas em uma lista para uma verificação mais conveniente através seguinte:
+```{r logregrainfc}
+CDF <- list(cNLR = cdf_cNLR, BMA = cdf_gBMA, logreg = cdf_logreg, 
+  hlogreg = cdf_hetlogreg, HXLR = cdf_HXLR, OLR = cdf_OLR)
+```
+
+## Verificação
+
+cNLR, BMA e HXLR fornecem distribuições preditivas contínuas completas. Os outros métodos de regressão logística podem apenas prever probabilidades em limiar. Portanto, esta seção compara os diferentes métodos, principalmente em pontuações para previsões binárias ou categóricas.
+
+Métodos de verificação binários são mostrados apenas na *ocorrência de precipitação* (limiar zero; primeiras colunas de matrizes CDF). Outros limites podem ser avaliados de forma semelhante.
+
+A pontuação de Brier é uma das medidas de verificação mais comuns para previsões probabilísticas binárias. Essencialmente, é o erro quadrado das previsões de probabilidade em que as observações são consideradas 0 (não ocorreu) ou 1 (ocorreu). O código a seguir deriva as pontuações de Brier de todos os métodos e os combina em uma matriz com os métodos nas colunas e as diferentes datas nas linhas:
+```{r brierrain}
+brier_all <- NULL
+for(n in names(CDF)) {
+  brier_all <- cbind(brier_all, ((raintest$rain <= 0) - CDF[[n]][,1])^2)
+}
+colnames(brier_all) <- names(CDF)
+```
+
+As distribuições de amostragem das pontuações médias de Brier podem ser ilustradas em diagramas de caixa de médios bootstrapped:
+```{r brier}
+boxplot(bootmean(brier_all), las = 2, ylab = "Brier score")
+```
+
+
+```{r rpsprep}
+cdf_obs <- sapply(q, function(q) raintest$rain <= q)
+rps_all <- NULL
+for(n in names(CDF)) {
+  rps_all <- cbind(rps_all, 
+    rowSums((CDF[[n]] - cdf_obs)^2)/(ncol(cdf_HXLR) - 1))
+}
+colnames(rps_all) <- names(CDF)
+```
+
+```{r rps}
+boxplot(bootmean(rps_all), las = 2, ylab = "RPS")
+```
+
+Figura 11.11 do capítulo:
+```{r fig_bootscores2}
+par(mfrow=c(1,2), mar=c(4.5,4,2,2))
+boxplot(bootmean(brier_all), las = 2, ylab = "Brier score")
+boxplot(bootmean(rps_all), las = 2, ylab = "RPS")
+```
+
+Frequentemente, a pontuação de Brier é decomposta em confiabilidade, resolução e incerteza. Esta decomposição é implementada em `brier()` por **verification** ou `BrierDecomp()` de **SpecsVerification**:
+```{r brierdecomp}
+sapply(CDF, function(x) BrierDecomp(x[,1], y = (raintest$rain <= 0))[1,])
+```
+
+`BrierDecomp` retorna uma matriz com a composição de Brier na primeira e seus desvios padrão estimados na segunda linha. Portanto, a primeira linha é um subconjunto com [1,]. Esta decomposição revela que a alta pontuação de Brier em BMA pode ser atribuída principalmente à sua grande (isto é, relativamente pobre) confiabilidade.
+
+Uma avaliação mais abrangente de previsões binárias é fornecida por diagramas de confiabilidade (Wilks, 2011), para os quais as implementações são fornecidas por `reliability.plot()` de **verification** ou `ReliabilityDiagram()` de **SpecsVerification**. Os diagramas de confiabilidade para todos os métodos podem ser criados pelo código a seguir:
+```{r fig_reliability}
+par(mfrow=c(2,3))
+for(n in 1:length(names(CDF))){
+  ReliabilityDiagram(1 - CDF[[n]][,1], (raintest$rain > 0), plot=TRUE)
+  par(mfg = c((n-1) %/% 3 + 1, (n-1) %% 3 + 1))
+  title(main = names(CDF)[n])
+}
+```
+
+
+No chunk anterior, o comando `par (mfg = c ((n-1) %/% 3 + 1, (n-1) %% 3 + 1)` é necessário para organizar os diagramas nos 6 painéis porque `ReliabilityDiagram()` redefine os parâmetros gráficos.
+Os diagramas de confiabilidade mostram uma boa calibração para todos os métodos de previsão (função de calibração próxima à linha diagonal). De acordo com a confiabilidade da decomposição da pontuação de Brier, BMA se desvia mais da diagonal, mas ainda está dentro da faixa de consistência.
+
+As curvas de características de operação do receptor (ROC) são outra ferramenta de verificação gráfica comum para previsões binárias (Wilks, 2011). No R, existem várias funções para criar diagramas ROC, como `asroc.plot()` de **verification**, `plot()` do **ROCR** ou `roc()` de **pROC**. O código a seguir cria diagramasROC para todos os métodos e adiciona a área sob a curva (AUC) a esses gráficos:
+```{r eval=FALSE, include=FALSE}
+library("pROC")
+par(mfrow = c(2, 3))
+for(n in names(CDF)){
+  rocplot <- roc((raintest$rain > 0) ~ I(1 - CDF[[n]][, 1]), plot=TRUE,
+    main = n)
+  text(0.2, 0.2, paste("AUC =", round(rocplot$auc, digits = 4)))
+}
+```
+
+A pontuação de Brier é uma medida de verificação adequada para previsões de probabilidade de limite único. Com dois ou mais limites, a pontuação de Brier pode ser generalizada para a pontuação de probabilidade classificada (RPS). Essencialmente, o RPS é a pontuação média de Brier sobre todos os limites (aqui usamos os mesmos limites que foram usados para o ajuste na anteriormente, ou seja, decis climatológicos com probabilidades de 0,1, 0,2, ..., 0,9) e pode ser calculado por:
+```{r rpsprep2}
+cdf_obs <- sapply(q, function(q) raintest$rain <= q)
+rps_all <- NULL
+for(n in names(CDF)) {
+  rps_all <- cbind(rps_all, 
+    rowSums((CDF[[n]] - cdf_obs)^2)/(ncol(cdf_HXLR) - 1))
+}
+colnames(rps_all) <- names(CDF)
+```
+
+Um diagrama de caixa da distribuição de amostragem de meios RPS bootstrapped pode ser criado pelo código a seguir:
+```{r rps2}
+boxplot(bootmean(rps_all), las = 2, ylab = "RPS")
+```
+
+
+## Observação
+
+Todas as referêcias neste código estão presentes nas referências do capítulo abordado.

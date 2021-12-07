@@ -1,0 +1,53 @@
+---
+output: github_document
+---
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+# download-hindcast-NMME
+
+<!-- badges: start -->
+<!-- badges: end -->
+
+O objevo do download-hindcast-NMME é processar os dados das previsões climática do NMME. 
+
+
+
+
+```{r}
+easypackages::libraries(c("tidyverse"))
+#fs::dir_ls(here("R"), glob = "*.R") %>%
+#  fs::path_file()
+```
+
+# Descrição
+
+
+- `test-down-nmme.R`: *Download* dos dados por modelo e ano, no format NetCDF. O domínio espacial dos dados é a América do Sul.
+
+  - depende do script `models-nmme.R` que gera objeto chamado `tabela1` com informações dos modelos, como nomes e períodos.
+  
+  - arquivos de saída em `output/prec` no padrão `nmme_{variavel}_{modelo}_{ano}.nc`
+
+>PAREIAQUI
+
+- `dados-brutos.R`: 
+
+  - depende do script `data-proc-nc.R` que contém as funções para extrair os dados de todos arquivos netcdf de um dado modelo, para um dado *lead time* (L, varia de 0.5 a 11.5). 
+  
+  - arquivos de saída no fomato RDS no padrão `nmme_{var_name}_{model_id}_lt{lead_time}.RDS`
+  
+  
+  
+  
+  
+
+
+

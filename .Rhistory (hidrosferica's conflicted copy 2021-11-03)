@@ -1,0 +1,314 @@
+ens_files <- here("output", "rds") %>%
+dir_ls(regexp = "ensemble")
+pcks <- c("raster", "terra", "tidyverse", "here",
+"checkmate", "metR", "fs", "lubridate",
+"tictoc")
+easypackages::libraries(pcks)
+source(here("R", "data-proc-rds.R"))
+## poligonos bacias ------------------------------------------------------------
+# arquivo RDS disponibilizado em
+pols_inc <- readr::read_rds("~/Dropbox/datasets/GIS/BaciaHidrograficaONS-enviadoProfAssis/poligonos-bacias-incrementais.RDS") %>%
+sf::st_transform(crs = "+proj=longlat +datum=WGS84") %>%
+dplyr::select(codONS, nome, area)
+pols_inc_sp <- as(pols_inc, "Spatial")
+#plot(pols_inc_sp)
+ens_files <- here("output", "rds") %>%
+dir_ls(regexp = "ensemble")
+ens_files
+ens_files
+imodel <- 1
+ens_data <- readr::read_rds(ens_files[imodel])
+ens_data
+ens_data_nest <- ens_data %>%
+mutate(S = lubridate::as_date(S)) %>% #as_tibble()
+group_by(model, S, L) %>%
+nest()
+file_model <- ens_files[1]
+ens_data
+file_model <- ens_files[1]
+ens_data <- readr::read_rds(file_model)
+ens_data_nest <- ens_data %>%
+mutate(S = lubridate::as_date(S)) %>% #as_tibble()
+group_by(model, S, L) %>%
+nest()
+ens_data_nest
+source(here("R", "data-proc-rds.R"))
+basin_average
+source(here("R", "data-proc-basin.R"))
+ens_data_nest[[1]]
+ens_data_nest[["data"]][[1]]
+tic()
+basin_average(datagrid = ens_data_nest[["data"]][[1]])
+toc()
+length(ens_data_nest[["data"]])
+length(ens_data_nest[["data"]]) * 5.5
+length(ens_data_nest[["data"]]) * 5.5/3600
+length(ens_files)
+remotes::install_github("DavisVaughan/furrr")
+pcks <- c("raster", "terra", "tidyverse", "here",
+"checkmate", "metR", "fs", "lubridate",
+"tictoc", "furrr")
+easypackages::libraries(pcks)
+source(here("R", "data-proc-basin.R"))
+pcks <- c("raster", "terra", "tidyverse", "here",
+"checkmate", "metR", "fs", "lubridate",
+"tictoc", "furrr")
+easypackages::libraries(pcks)
+source(here("R", "data-proc-basin.R"))
+ens_files <- here("output", "rds") %>%
+dir_ls(regexp = "ensemble")
+length(ens_files)
+file_model <- ens_files[1]
+ens_data <- readr::read_rds(file_model)
+# agrupando dados por mes de inicialização(S) e leadtime (L)
+# resulta na coluna 'data' com os pontos de grade do domínio
+# cada linha corresponde a previsão de um membro para um mês de inicialização
+# 456 (varia por modelo) meses x 456 linhas
+# dimensions : 76, 56, 4256, 1  (nrow, ncol, ncell, nlayers)
+ens_data_nest <- ens_data %>%
+mutate(S = lubridate::as_date(S)) %>% #as_tibble()
+group_by(model, S, L) %>%
+nest()
+tic()
+basin_average(datagrid = ens_data_nest[["data"]][[1]])
+toc()
+# arquivo RDS disponibilizado em
+pols_inc <- readr::read_rds("~/Dropbox/datasets/GIS/BaciaHidrograficaONS-enviadoProfAssis/poligonos-bacias-incrementais.RDS") %>%
+sf::st_transform(crs = "+proj=longlat +datum=WGS84") %>%
+dplyr::select(codONS, nome, area)
+pols_inc_sp <- as(pols_inc, "Spatial")
+tic()
+basin_average(datagrid = ens_data_nest[["data"]][[1]])
+toc()
+ens_data_nest
+ens_data_nest %>% slice(1:8)
+ens_data_nest %>% slice(1)
+ens_data_nest[1:8]
+ens_data_nest[1:8,]
+plan(multisession, workers = 8)
+ens_data_basin <- ens_data_nest[1:8,] %>%
+mutate(prec_basin = furrr::future_map(data, ~basin_average(.x)))
+ens_data_nest[1:8,"data"]
+ens_data_nest[1:8,"data"]
+tic()
+plan(multisession, workers = 8)
+furrr::future_map(ens_data_nest[1:8,"data"] , ~basin_average(.x))
+toc()
+ens_data_nest[1:8,"data"]
+unlist(ens_data_nest[1:8,"data"])
+c(ens_data_nest[1:8,"data"])
+tic()
+plan(multisession, workers = 8)
+furrr::future_map(c(ens_data_nest[1:8,"data"]) , ~basin_average(.x))
+toc()
+ens_data_nest[1:8,"data"]
+ens_data_nest[1:8,"data"][[1]]
+tic()
+plan(multisession, workers = 8)
+furrr::future_map(ens_data_nest[1:8,"data"][[1]] , ~basin_average(.x))
+toc()
+ens_data_nest[["data"]]
+length(ens_data_nest[["data"]])
+length(ens_data_nest[["data"]]) * 30/8
+(length(ens_data_nest[["data"]]) * 30/8)/3600
+ens_data_nest[["data"]][[1]]
+ens_data
+ens_data_nest
+bas_avg_model
+bas_avg_model <- furrr::future_map(ens_data_nest[["data"]] , ~basin_average(.x))
+gc()
+basin_avg_model <- function(file_model){
+# file_model <- ens_files[1]
+ens_data <- readr::read_rds(file_model)
+# agrupando dados por mes de inicialização(S) e leadtime (L)
+# resulta na coluna 'data' com os pontos de grade do domínio
+# cada linha corresponde a previsão de um membro para um mês de inicialização
+# 456 (varia por modelo) meses x 456 linhas
+# dimensions : 76, 56, 4256, 1  (nrow, ncol, ncell, nlayers)
+ens_data_nest <- ens_data %>%
+mutate(S = lubridate::as_date(S)) %>% #as_tibble()
+group_by(model, S, L) %>%
+nest()
+# tic()
+# basin_average(datagrid = ens_data_nest[["data"]][[1]])
+# toc()
+# 5.526 sec elapsed
+#ength(ens_data_nest[["data"]]) * 5.5/3600
+#[1] 6.6 horas
+#tic()
+plan(multisession, workers = 8)
+#furrr::future_map(ens_data_nest[1:8,"data"][[1]] , ~basin_average(.x))
+bas_avg_model <- furrr::future_map(ens_data_nest[["data"]] , ~basin_average(.x))
+#toc()
+gc()
+mutate(ens_data_nest, basin_avg = bas_avg_model)
+}
+seq_along(ens_files)
+cat(ens_files[i], "\n")
+ens_files
+i = 1
+cat(path_file(ens_files[i]), "\n")
+gc()
+ens_files <- here("output", "rds") %>%
+dir_ls(regexp = "ensemble")
+length(ens_files)
+basin_avg_model <- function(file_model){
+# file_model <- ens_files[1]
+ens_data <- readr::read_rds(file_model)
+# agrupando dados por mes de inicialização(S) e leadtime (L)
+# resulta na coluna 'data' com os pontos de grade do domínio
+# cada linha corresponde a previsão de um membro para um mês de inicialização
+# 456 (varia por modelo) meses x 456 linhas
+# dimensions : 76, 56, 4256, 1  (nrow, ncol, ncell, nlayers)
+ens_data_nest <- ens_data %>%
+mutate(S = lubridate::as_date(S)) %>% #as_tibble()
+group_by(model, S, L) %>%
+nest()
+# tic()
+# basin_average(datagrid = ens_data_nest[["data"]][[1]])
+# toc()
+# 5.526 sec elapsed
+#ength(ens_data_nest[["data"]]) * 5.5/3600
+#[1] 6.6 horas
+#tic()
+plan(multisession, workers = 8)
+#furrr::future_map(ens_data_nest[1:8,"data"][[1]] , ~basin_average(.x))
+bas_avg_model <- furrr::future_map(ens_data_nest[["data"]] , ~basin_average(.x))
+#toc()
+gc()
+mutate(ens_data_nest, basin_avg = bas_avg_model)
+}
+tic()
+out_basin_avgs <- map_df(#seq_along(ens_files),
+1:2,
+function(i) {
+# i = 1
+cat(path_file(ens_files[i]), "\n")
+basin_avg_model(file_model = ens_files[i])
+})
+toc()
+gc()
+q("no")
+pcks <- c("raster", "terra", "tidyverse", "here",
+"checkmate", "metR", "fs", "lubridate",
+"tictoc", "furrr")
+easypackages::libraries(pcks)
+source(here("R", "data-proc-basin.R"))
+## poligonos bacias ------------------------------------------------------------
+# arquivo RDS disponibilizado em
+pols_inc <- readr::read_rds(here("input", "poligonos-bacias-incrementais.RDS")) %>%
+sf::st_transform(crs = "+proj=longlat +datum=WGS84") %>%
+dplyr::select(codONS, nome, area)
+pols_inc_sp <- as(pols_inc, "Spatial")
+#plot(pols_inc_sp)
+## dados ensemble -------------------------------------------------------------
+ens_files <- here("output", "rds") %>%
+dir_ls(regexp = "ensemble")
+length(ens_files)
+ens_files
+ens_files[7]
+file_model <- ens_files[8]
+file_model <- ens_files[8]
+tic()
+ens_data <- readr::read_rds(file_model)
+toc()
+imodel <- fs::path_file(file_model) %>%
+stringr::str_replace("ensemble-", "") %>%
+stringr::str_replace("\\.RDS", "")
+ens_data
+imodel
+fs::dir_ls(here("output/rds/basin-avgs"))
+fs::dir_ls(here("output/rds/basin-avgs", imodel))
+fs::dir_ls(here("output/rds/basin-avgs", imodel)) %>%
+str_replace_all(paste0(imodel, "_"), "")
+fs::dir_ls(here("output/rds/basin-avgs", imodel)) %>%
+fs::path_file() %>%
+str_replace_all(paste0(imodel, "_"), "")
+fs::dir_ls(here("output/rds/basin-avgs", imodel)) %>%
+fs::path_file() %>%
+str_extract_all("S[0-9]{8}_")
+fs::dir_ls(here("output/rds/basin-avgs", imodel)) %>%
+fs::path_file() %>%
+str_extract_all("S[0-9]{8}_", simplify = TRUE)
+fs::dir_ls(here("output/rds/basin-avgs", imodel)) %>%
+fs::path_file() %>%
+str_extract_all("S[0-9]{8}", simplify = TRUE)
+?lubridate::parse_date_time
+fs::dir_ls(here("output/rds/basin-avgs", imodel)) %>%
+fs::path_file() %>%
+str_extract_all("S[0-9]{8}", simplify = TRUE) %>%
+lubridate::parse_date_time("S%Y%m%d")
+fs::dir_ls(here("output/rds/basin-avgs", imodel)) %>%
+fs::path_file() %>%
+str_extract_all("S[0-9]{8}", simplify = TRUE)
+x <- fs::dir_ls(here("output/rds/basin-avgs", imodel)) %>%
+fs::path_file() %>%
+str_extract_all("S[0-9]{8}", simplify = TRUE)
+x
+x %>%
+lubridate::parse_date_time("%Y%m%d")
+x
+x %>%
+lubridate::parse_date_time("Ymd")
+x %>%
+format("S%Y%m%d")
+x
+x %>%
+as.Date("S%Y%m%d")
+x <- fs::dir_ls(here("output/rds/basin-avgs", imodel)) %>%
+fs::path_file() %>%
+str_extract_all("S[0-9]{8}", simplify = TRUE) %>%
+as.Date("S%Y%m%d")
+x
+dates_from_model_rds_files <- function(dir_model_rds){
+x <- fs::dir_ls(dir_model_rds) %>%
+fs::path_file() %>%
+str_extract_all("S[0-9]{8}", simplify = TRUE) %>%
+as.Date("S%Y%m%d")
+x
+}
+imodel <- "NCEP-CFSv2"
+dates_from_model_rds_files(here("output/rds/basin-avgs", imodel))
+imodel <- "NCEP-CFSv2"
+rds_dts <- dates_from_model_rds_files(here("output/rds/basin-avgs", imodel))
+range(rds_dts)
+ens_data
+lubridate::as_date("1997-07-01")
+ens_data %>%
+dplyr::filter(S >= lubridate::as_date("1997-07-01"))
+ens_data <- ens_data %>%
+dplyr::filter(S >= lubridate::as_date("1997-07-01"))
+ens_data <- ens_data %>%
+dplyr::mutate(S = lubridate::as_date(S)) %>%
+dplyr::group_by(model, S, L) %>%
+tidyr::nest() %>%
+ungroup()
+ens_data
+tic()
+#plan(multisession, workers = 6)
+# samp <- ens_data[1:8,"data"]
+# bas_avg_model <- furrr::future_map(samp[["data"]], ~basin_average(.x))
+# bas_avg_model <- map(samp[["data"]], ~basin_average(.x))
+# bas_avg_model <- furrr::future_map(ens_data[["data"]] , ~basin_average(.x))
+#model_basin_avg_files <- furrr::future_map(
+model_basin_avg_files <- purrr::map(
+1:nrow(ens_data),
+#1:12,
+function(isl) {
+# isl = 8
+iSLM <- select(ens_data, S:model)[isl, ]
+basin_file <- here("output/rds/basin-avgs", basin_avg_file_name(slm = iSLM))
+if(fs::file_exists(basin_file)) return(basin_file)
+bas_avg <- basin_average(ens_data[["data"]][[isl]])
+basin_data <- dplyr::bind_cols(iSLM, bas_avg)
+readr::write_rds(basin_data, basin_file)
+gc()
+basin_file
+}
+)
+toc()
+# 35 s com raster
+# 21 s com terra e furrr
+# 2.7 sec com terra e map
+gc()
+gc()
